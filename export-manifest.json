@@ -42,5 +42,5 @@
     "services/watchdog_supervisor.py",
     "tests/test_cloud_safety.py"
   ],
-  "bytes": 230566
+  "bytes": 230558
 }

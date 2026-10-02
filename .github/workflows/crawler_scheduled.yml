@@ -28,7 +28,7 @@ jobs:
     env:
       PYTHONUNBUFFERED: '1'
       PYTHONDONTWRITEBYTECODE: '1'
-      BEEKIP_DATA_DIR: ${{ runner.temp }}/beekip-data
+      BEEKIP_DATA_DIR: /tmp/beekip-cloud-data
       MAX_WORKER_THREADS: '1'
       MAX_DOMAIN_CONCURRENCY: '1'
       MIN_DOMAIN_DELAY_SECONDS: '2.5'
