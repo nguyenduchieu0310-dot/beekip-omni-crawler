@@ -91,7 +91,10 @@ class CloudPipeline:
             adapter = get_adapter_for_source(source)
             candidates = adapter.extract_download_links(url)
             if not candidates:
-                raise RuntimeError('NO_DOWNLOAD_CANDIDATE')
+                # An eligible article is not necessarily a downloadable document.
+                # Keep this terminal so it cannot block later queue items forever.
+                self.db.update_inbound_status(url, 'SKIPPED_NO_DOCUMENT', 'No supported document link')
+                return None
             candidate = next((c for c in candidates if c.file_type == 'PDF'), candidates[0])
             downloaded = self.downloader.download(candidate.url, preferred_name=candidate.file_name)
             if downloaded is None:
@@ -102,7 +105,7 @@ class CloudPipeline:
                 if downloaded.mime_type != 'application/pdf':
                     if not DocumentPDFConverter.can_convert():
                         self.db.update_inbound_status(url, 'NEEDS_OFFICE_CONVERTER', 'No LibreOffice runtime')
-                        return False
+                        return None
                     pdf = DocumentPDFConverter.convert_docx_to_pdf(pdf, folder)
                     if pdf is None:
                         raise RuntimeError('OFFICE_CONVERSION_FAILED')
@@ -112,7 +115,7 @@ class CloudPipeline:
                 original_check = renderer.validate_pdf_standards(pdf)
                 if not original_check.get('malware_free'):
                     self.db.update_inbound_status(url, 'QA_REJECTED', 'Active PDF content')
-                    return False
+                    return None
                 cleaned = DeepSanitizerEngine().sanitize_pdf_derivative(pdf, clean_pdf)
                 if not cleaned.get('success'):
                     raise RuntimeError('SANITIZATION_FAILED')
@@ -130,7 +133,7 @@ class CloudPipeline:
                 if not qa['is_published_eligible']:
                     rejected = ','.join(k for k,v in qa['checklist'].items() if not v['pass'])
                     self.db.update_inbound_status(url, 'QA_REJECTED', rejected)
-                    return False
+                    return None
                 payload, cover_bytes = clean_pdf.read_bytes(), cover.read_bytes()
                 total = len(payload) + len(cover_bytes)
                 # Local safety ceilings, not an account-wide Cloudflare billing guarantee.

@@ -62,7 +62,7 @@ GIỚI HẠN CẦN HIỂU RÕ
 - Làm sạch watermark/PII dùng quy tắc và kiểm tra tự động, không chứng minh an toàn tuyệt đối hay sạch 100%.
 - Nội dung cloud chỉ mô tả metadata và gợi ý sử dụng; cần đánh giá biên tập, schema.org và tích hợp sitemap trước khi xuất bản quy mô lớn.
 - QA_REJECTED và NEEDS_OFFICE_CONVERTER được giữ để kiểm tra; không tự thử mãi gây tiêu phí.
-- Các bảng beekip_crawler_* chỉ được tạo khi ingest; chưa được tạo trong kiểm tra cục bộ.
+- Các bảng beekip_crawler_queue, beekip_crawler_sources và beekip_crawler_blobs đã được tạo trong D1.
 - Giới hạn 2 GiB theo ledger không tính dữ liệu R2 của ứng dụng khác, object cũ hoặc upload dang dở.
 - Sitemap hiện do website quản lý. Đã bỏ bước gọi services.sitemap_generator không tồn tại;
   chưa triển khai sitemap/IndexNow ngoài website, không gọi API ping sitemap cũ của Google.
@@ -76,15 +76,17 @@ https://developers.cloudflare.com/r2/pricing/
 https://developers.cloudflare.com/d1/platform/pricing/
 
 KẾT QUẢ KIỂM THỬ CỤC BỘ
-29 kiểm thử của bản chuẩn bị đã qua; bản tích hợp R2 riêng tư hiện có 16 kiểm thử cloud đã qua. Actionlint kiểm tra ngữ cảnh GitHub và YAML đã qua. Preflight đọc Cloudflare thực tế trên máy đã qua. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud.
+29 kiểm thử của bản chuẩn bị đã qua; bản tích hợp R2 riêng tư hiện có 18 kiểm thử cloud đã qua. Actionlint đã kiểm tra ngữ cảnh GitHub và YAML. Preflight đọc Cloudflare thực tế trên máy và trên runner GitHub đều đã qua. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud.
 
 TRẠNG THÁI TRIỂN KHAI GITHUB
 - Chủ repo đã xác minh: nguyenduchieu0310-dot. Repo Private, đã push nhánh main.
-- Đã lưu và đọc lại tên ba Secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_R2_BUCKET.
-- CLOUDFLARE_API_TOKEN còn thiếu; người dùng đang được hướng dẫn tạo token và thêm trực tiếp vào GitHub.
-- BEEKIP_CLOUD_ENABLED=false. Chưa có lần ingest hoặc runner Linux thành công.
+- Đã xác minh đủ bốn Secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_R2_BUCKET và CLOUDFLARE_API_TOKEN.
+- Token Cloudflare chỉ giới hạn vào tài khoản đã chọn, với D1 Edit và Workers R2 Storage Edit.
+- Preflight runner Linux đã thành công: https://github.com/nguyenduchieu0310-dot/beekip-omni-crawler/actions/runs/36996809481
+- Lượt ingest đầu tiên đã quét 11 nguồn và 183 bài nhưng thất bại do ba bài web không có tệp bị tính nhầm là lỗi. Bản sửa đánh dấu chúng SKIPPED_NO_DOCUMENT và tiếp tục hàng đợi trong giới hạn 3 tài liệu/lượt.
+- BEEKIP_CLOUD_ENABLED=false tạm thời trong lúc đẩy và xác minh bản sửa; chỉ bật lại sau lượt ingest xanh.
 - GitHub từng từ chối cú pháp runner.temp trong job env ở commit ccff1c2; đã sửa tại 6dcfce1 và xác nhận bằng actionlint.
-- Token Git cục bộ không đọc được Billing API (HTTP 404). Cần kiểm tra hạn mức/budget tại trang Billing trước khi bật lịch theo yêu cầu 0đ.
+- GitHub Billing đã xác minh gói Free, 2.000 phút Actions/tháng và budget Actions 0 USD với Stop usage=Yes. Chi phí đo được hiện tại được miễn trừ, billable 0 USD.
 
 
 

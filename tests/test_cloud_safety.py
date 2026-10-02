@@ -79,6 +79,30 @@ class CloudSafety(unittest.TestCase):
         finally:
             daemon.worker_pool.shutdown()
 
+    def test_terminal_skips_do_not_consume_deployment_cap(self):
+        db, pipeline = MagicMock(), MagicMock()
+        pipeline.cloud_mode = False
+        pipeline.process_inbound_url.side_effect = [None, True, True, True]
+        source = dict(source_id='one', domain='example.test')
+        db.get_active_sources.return_value = [source]
+        db.get_pending_inbound_items.return_value = [
+            dict(url=f'https://example.test/{number}', source_id='one')
+            for number in range(4)
+        ]
+        adapter = MagicMock()
+        adapter.source_info = {}
+        adapter.fetch_latest_posts.return_value = []
+        daemon = OmniSchedulerDaemon(db=db, pipeline=pipeline)
+        try:
+            with patch('services.omni_scheduler.get_adapter_for_source', return_value=adapter):
+                result = daemon.run_single_cycle(3, max_attempts_per_cycle=12)
+            self.assertEqual(result['attempted_count'], 4)
+            self.assertEqual(result['skipped_count'], 1)
+            self.assertEqual(result['deployed_count'], 3)
+            self.assertEqual(result['failed_count'], 0)
+        finally:
+            daemon.worker_pool.shutdown()
+
     def test_sanitization_produces_stable_bytes_for_retry(self):
         with tempfile.TemporaryDirectory() as tmp:
             folder = Path(tmp)
@@ -201,6 +225,21 @@ class CloudSafety(unittest.TestCase):
                 adapter.return_value.extract_download_links.return_value = [MagicMock(file_type='PDF', url='https://x/f.pdf', file_name='test.pdf')]
                 sanitizer.return_value.sanitize_pdf_derivative.return_value = {'success': False}
                 self.assertFalse(pipeline.process_inbound_url(dict(url='https://x/a', title='Đề thi Toán 12 2025', published_year=2025), {}))
+            pipeline.r2.upload_document.assert_not_called()
+            pipeline.d1.insert_document.assert_not_called()
+
+    def test_article_without_document_is_terminal_skip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = self.prepare_pipeline(Path(tmp))
+            with patch('services.cloud_pipeline.get_adapter_for_source') as adapter:
+                adapter.return_value.extract_download_links.return_value = []
+                result = pipeline.process_inbound_url(
+                    dict(url='https://x/article', title='Đề thi Toán 12 2025', published_year=2025), {})
+            self.assertIsNone(result)
+            self.assertIn(
+                unittest.mock.call('https://x/article', 'SKIPPED_NO_DOCUMENT', 'No supported document link'),
+                pipeline.db.update_inbound_status.call_args_list,
+            )
             pipeline.r2.upload_document.assert_not_called()
             pipeline.d1.insert_document.assert_not_called()
 

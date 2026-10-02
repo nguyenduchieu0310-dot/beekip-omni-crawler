@@ -188,9 +188,10 @@ class RSSAdapter(BaseSourceAdapter):
         except Exception:
             pass
 
-        # Resilient BeautifulSoup XML parsing
+        # Tolerant fallback for malformed feeds. html.parser is in the Python
+        # standard library, so the cloud runner does not depend on lxml.
         try:
-            soup = BeautifulSoup(xml_content, "xml")
+            soup = BeautifulSoup(xml_content, "html.parser")
             items = []
             for item in soup.find_all("item"):
                 title_tag = item.find("title")

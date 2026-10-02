@@ -41,7 +41,8 @@ class OmniSchedulerDaemon:
         self.pipeline = pipeline or DocumentProcessingPipeline(db=self.db)
         self.worker_pool = DomainBoundWorkerPool(max_workers=MAX_WORKER_THREADS)
 
-    def run_single_cycle(self, max_items_per_cycle: int = 50, scan_budget_seconds=None) -> Dict[str, Any]:
+    def run_single_cycle(self, max_items_per_cycle: int = 50, scan_budget_seconds=None,
+                         max_attempts_per_cycle=None) -> Dict[str, Any]:
         """
         Execute a complete 4-hour monitoring cycle:
         1. Differential scan of all active sources.
@@ -137,29 +138,41 @@ class OmniSchedulerDaemon:
                     self.db.update_source_sync_meta(source_id)
                 logger.error("Error checking source [%s]: %s", source_id, e)
 
-        # Step 2: Dispatch pending items in inbound_queue to Worker Pool
-        pending_items = self.db.get_pending_inbound_items(limit=max_items_per_cycle)
+        # Step 2: Dispatch bounded batches. A batch never has more slots than the
+        # remaining deployment allowance, so a run cannot publish over its cap.
+        max_attempts = max_attempts_per_cycle or max_items_per_cycle
+        pending_items = self.db.get_pending_inbound_items(limit=max_attempts)
         logger.info("Dispatching %s items from inbound queue to Worker Pool...", len(pending_items))
 
         source_lookup = {s["source_id"]: s for s in sources}
-        futures = []
-        for q_item in pending_items:
-            src_info = source_lookup.get(q_item["source_id"], {"domain": "unknown", "primary_subject": "Đa môn"})
-            domain = src_info.get("domain", "unknown")
-            f = self.worker_pool.submit(domain, self.pipeline.process_inbound_url, q_item, src_info)
-            futures.append(f)
-
         deployed_count = 0
         failed_count = 0
-        for f in futures:
-            try:
-                if f.result(timeout=120):
-                    deployed_count += 1
-                else:
+        skipped_count = 0
+        attempted_count = 0
+        cursor = 0
+        while cursor < len(pending_items) and deployed_count < max_items_per_cycle:
+            batch_size = min(max_items_per_cycle - deployed_count, len(pending_items) - cursor)
+            batch = pending_items[cursor:cursor + batch_size]
+            cursor += batch_size
+            futures = []
+            for q_item in batch:
+                src_info = source_lookup.get(q_item["source_id"], {"domain": "unknown", "primary_subject": "Đa môn"})
+                domain = src_info.get("domain", "unknown")
+                futures.append(self.worker_pool.submit(
+                    domain, self.pipeline.process_inbound_url, q_item, src_info))
+            for future in futures:
+                attempted_count += 1
+                try:
+                    outcome = future.result(timeout=120)
+                    if outcome is True:
+                        deployed_count += 1
+                    elif outcome is None:
+                        skipped_count += 1
+                    else:
+                        failed_count += 1
+                except Exception as e:
                     failed_count += 1
-            except Exception as e:
-                failed_count += 1
-                logger.error("Worker processing failed: %s", e)
+                    logger.error("Worker processing failed: %s", e)
 
         duration = time.perf_counter() - start_time
         logger.info(
@@ -175,7 +188,8 @@ class OmniSchedulerDaemon:
             urls_rejected=urls_rejected_old,
             deployed_count=deployed_count,
             duration_seconds=duration,
-            status="FAILED" if source_errors or failed_count or not sources_checked else "SUCCESS"
+            status=("FAILED" if failed_count or not sources_checked else
+                    "PARTIAL" if source_errors else "SUCCESS")
         )
 
         # Ping search engines if any documents were deployed
@@ -190,6 +204,8 @@ class OmniSchedulerDaemon:
             "urls_accepted_2023": urls_accepted_2023,
             "urls_rejected_old": urls_rejected_old,
             "deployed_count": deployed_count,
+            "attempted_count": attempted_count,
+            "skipped_count": skipped_count,
             "failed_count": failed_count,
             "source_errors": source_errors,
             "deferred_sources": len(sources) - sources_checked - source_errors,

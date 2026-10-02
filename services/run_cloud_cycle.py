@@ -125,7 +125,11 @@ def main():
         pipeline = CloudPipeline(ledger, CloudflareR2Uploader(), d1)
         daemon = OmniSchedulerDaemon(db=ledger, pipeline=pipeline)
         try:
-            result = daemon.run_single_cycle(max_items_per_cycle=3, scan_budget_seconds=120)
+            result = daemon.run_single_cycle(
+                max_items_per_cycle=3,
+                max_attempts_per_cycle=12,
+                scan_budget_seconds=120,
+            )
         finally:
             daemon.worker_pool.shutdown(wait=True)
         report = json.dumps(result, ensure_ascii=False, indent=2)
@@ -134,7 +138,10 @@ def main():
         if summary_path:
             with open(summary_path, 'a', encoding='utf-8') as summary:
                 summary.write('Beekip ingestion result\n\n```json\n' + report + '\n```\n')
-        return 1 if result['failed_count'] or result['source_errors'] or not result['sources_checked'] else 0
+        # Individual sources routinely throttle or time out. Keep them visible in
+        # the report, but fail only when the whole scan is unavailable or a real
+        # document-processing attempt fails.
+        return 1 if result['failed_count'] or not result['sources_checked'] else 0
     except Exception as exc:
         logger.error('Cloud cycle stopped: %s', str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__)
         return 1
