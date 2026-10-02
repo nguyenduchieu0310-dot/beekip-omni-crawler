@@ -146,8 +146,10 @@ class CloudPipeline:
                     raise RuntimeError('CRAWLER_STORAGE_LIMIT_2_GIB')
                 self.bytes_uploaded += total
                 subject = SEOGEOEnricher.generate_slug(meta.subject)
-                key, _ = self.r2.upload_document(payload, subject, meta.academic_year, meta.slug)
                 doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, url))
+                key, _ = self.r2.upload_document(
+                    payload, subject, meta.academic_year, meta.slug,
+                    storage_key=f'documents/v1/{doc_id}/source.pdf')
                 cover_key, _ = self.r2.upload_document(cover_bytes, subject, meta.academic_year, meta.slug,
                     mime_type='image/jpeg', ext='jpg', storage_key=f'documents/v1/{doc_id}/cover.jpg')
                 route = BEEKIP_BASE_URL.rstrip('/') + '/api/documents/' + quote(meta.slug, safe='')

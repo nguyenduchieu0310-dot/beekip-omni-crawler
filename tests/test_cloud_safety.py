@@ -276,6 +276,8 @@ class CloudSafety(unittest.TestCase):
             self.assertGreater(pipeline.d1.insert_document.call_args.kwargs['page_count'], 0)
             self.assertTrue(pipeline.d1.insert_document.call_args.kwargs['cover_url'].endswith('/cover'))
             self.assertIn('/api/documents/', pipeline.d1.insert_document.call_args.args[1])
+            source_args = pipeline.r2.upload_document.call_args_list[0].kwargs
+            self.assertRegex(source_args['storage_key'], r'^documents/v1/[a-f0-9-]{36}/source\.pdf$')
             cover_args = pipeline.r2.upload_document.call_args_list[1].kwargs
             self.assertRegex(cover_args['storage_key'], r'^documents/v1/[a-f0-9-]{36}/cover\.jpg$')
 
