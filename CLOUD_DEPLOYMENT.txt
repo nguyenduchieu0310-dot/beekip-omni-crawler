@@ -76,15 +76,18 @@ https://developers.cloudflare.com/r2/pricing/
 https://developers.cloudflare.com/d1/platform/pricing/
 
 KẾT QUẢ KIỂM THỬ CỤC BỘ
-29 kiểm thử của bản chuẩn bị đã qua; bản tích hợp R2 riêng tư hiện có 18 kiểm thử cloud đã qua. Actionlint đã kiểm tra ngữ cảnh GitHub và YAML. Preflight đọc Cloudflare thực tế trên máy và trên runner GitHub đều đã qua. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud.
+29 kiểm thử của bản chuẩn bị đã qua; bản tích hợp R2 riêng tư hiện có 20 kiểm thử cloud đã qua. Actionlint đã kiểm tra ngữ cảnh GitHub và YAML. Preflight đọc Cloudflare thực tế trên máy và trên runner GitHub đều đã qua. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud.
 
 TRẠNG THÁI TRIỂN KHAI GITHUB
 - Chủ repo đã xác minh: nguyenduchieu0310-dot. Repo Private, đã push nhánh main.
 - Đã xác minh đủ bốn Secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_R2_BUCKET và CLOUDFLARE_API_TOKEN.
 - Token Cloudflare chỉ giới hạn vào tài khoản đã chọn, với D1 Edit và Workers R2 Storage Edit.
 - Preflight runner Linux đã thành công: https://github.com/nguyenduchieu0310-dot/beekip-omni-crawler/actions/runs/36996809481
-- Lượt ingest đầu tiên đã quét 11 nguồn và 183 bài nhưng thất bại do ba bài web không có tệp bị tính nhầm là lỗi. Bản sửa đánh dấu chúng SKIPPED_NO_DOCUMENT và tiếp tục hàng đợi trong giới hạn 3 tài liệu/lượt.
-- BEEKIP_CLOUD_ENABLED=false tạm thời trong lúc đẩy và xác minh bản sửa; chỉ bật lại sau lượt ingest xanh.
+- Lượt ingest cuối trên commit 5840741 đã thành công: https://github.com/nguyenduchieu0310-dot/beekip-omni-crawler/actions/runs/37000304690
+- Lượt cuối quét 12 nguồn, phát hiện 275 bài, thử 12 mục, xuất bản 2 tài liệu, bỏ qua an toàn 10 mục và có 0 lỗi xử lý tài liệu.
+- D1 hiện ghi nhận 5 tài liệu crawler đã xuất bản, 59 mục đang chờ; ledger PDF + cover đang dùng 3.139.468 byte.
+- PDF và cover mới nằm dưới documents/v1/{document_id}/, đã kiểm tra các đường download/cover công khai trả HTTP 200 và đúng định dạng PDF/JPEG.
+- BEEKIP_CLOUD_ENABLED=true; lịch 00h, 04h, 08h, 12h, 16h, 20h theo giờ Việt Nam đang hoạt động.
 - GitHub từng từ chối cú pháp runner.temp trong job env ở commit ccff1c2; đã sửa tại 6dcfce1 và xác nhận bằng actionlint.
 - GitHub Billing đã xác minh gói Free, 2.000 phút Actions/tháng và budget Actions 0 USD với Stop usage=Yes. Chi phí đo được hiện tại được miễn trừ, billable 0 USD.
 
