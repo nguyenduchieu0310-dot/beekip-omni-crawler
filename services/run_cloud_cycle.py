@@ -30,9 +30,45 @@ logging.basicConfig(
 )
 logger = logging.getLogger("beekip.cloud_runner")
 
+
+def verify_private_app_route(d1, cloudflare_session, bucket_api, app_url):
+    """Prove the public cover route reads the selected private bucket, without writes."""
+    import hashlib
+    import requests
+    from urllib.parse import quote, urlparse
+    parsed = urlparse(app_url)
+    if (parsed.scheme != 'https' or parsed.netloc != 'tailieu.beekip.vn'
+            or parsed.path not in ('', '/') or parsed.query or parsed.fragment):
+        raise RuntimeError('Expected the verified Beekip app origin https://tailieu.beekip.vn')
+    rows = d1.execute_raw_sql('SELECT id,slug FROM documents WHERE is_published=1 AND archived_at IS NULL AND cover_url IS NOT NULL LIMIT 3')['result'][0]['results']
+    def digest(response):
+        if response.status_code != 200:
+            response.close()
+            return None
+        size, hasher = 0, hashlib.sha256()
+        try:
+            for block in response.iter_content(65536):
+                size += len(block)
+                if size > 2 * 1024 * 1024:
+                    return None
+                hasher.update(block)
+            return hasher.digest() if size else None
+        finally:
+            response.close()
+    for row in rows:
+        object_path = '/objects/documents/v1/' + quote(row['id'], safe='') + '/cover.jpg'
+        private_digest = digest(cloudflare_session.get(bucket_api + object_path, timeout=20, stream=True))
+        if private_digest is None:
+            continue
+        public_url = app_url.rstrip('/') + '/api/documents/' + quote(row['slug'], safe='') + '/cover'
+        # Deliberately use a separate request: never send Cloudflare credentials to the website.
+        public_digest = digest(requests.get(public_url, timeout=20, stream=True, allow_redirects=False))
+        if public_digest == private_digest:
+            return
+    raise RuntimeError('Could not verify Beekip cover route against the selected private R2 bucket')
+
 def preflight(local_read_only=False):
     import requests
-    from urllib.parse import urlparse
     from core import config
     from cloudflare.d1_deployer import CloudflareD1Deployer
     names = ('CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID',
@@ -61,17 +97,9 @@ def preflight(local_read_only=False):
             raise RuntimeError('Cloudflare preflight returned success=false')
         return data['result']
     read('')
-    domain_data = read('/domains/custom')
-    domains = domain_data.get('domains', [])
-    public_base = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
-    parsed = urlparse(public_base)
-    valid_domains = [d.get('domain') for d in domains
-                     if d.get('enabled') and d.get('status', {}).get('ownership') == 'active'
-                     and d.get('status', {}).get('ssl') == 'active']
-    if parsed.scheme != 'https' or parsed.path or parsed.query or parsed.fragment or parsed.username or parsed.hostname not in valid_domains:
-        raise RuntimeError('R2_PUBLIC_BASE_URL must be an active HTTPS custom domain attached to this bucket; no public URL has been verified')
+    verify_private_app_route(d1, session, bucket_api, config.BEEKIP_BASE_URL)
     # Authenticated local OAuth is allowed for this read-only check, never exported as a secret.
-    logger.info('Preflight passed: D1 schema, R2 bucket and custom domain')
+    logger.info('Preflight passed: D1 schema, private R2 bucket and existing Beekip cover route')
     return d1
 
 

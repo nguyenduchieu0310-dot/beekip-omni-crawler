@@ -14,7 +14,7 @@ from cloudflare.r2_uploader import CloudflareR2Uploader
 from processing.file_downloader import DownloadedFileResult, ResilientFileDownloader
 from services.cloud_pipeline import CloudPipeline, eligible_year
 from services.derivative_renderer import DerivativeRendererEngine
-from services.run_cloud_cycle import preflight
+from services.run_cloud_cycle import preflight, verify_private_app_route
 from services.sanitizer import DeepSanitizerEngine
 from services.omni_scheduler import OmniSchedulerDaemon
 
@@ -32,6 +32,30 @@ class SQLiteD1:
 
 
 class CloudSafety(unittest.TestCase):
+    def test_private_bucket_route_matches_without_forwarding_credential(self):
+        d1, session = MagicMock(), MagicMock()
+        d1.execute_raw_sql.return_value = {'result': [{'results': [{'id': 'doc-id', 'slug': 'example-2025'}]}]}
+        private, public = MagicMock(), MagicMock()
+        for response in [private, public]:
+            response.status_code = 200
+            response.iter_content.return_value = [b'cover bytes']
+        session.get.return_value = private
+        with patch('requests.get', return_value=public) as public_request:
+            verify_private_app_route(d1, session, 'https://api.cloudflare.com/bucket', 'https://tailieu.beekip.vn')
+            self.assertNotIn('headers', public_request.call_args.kwargs)
+            self.assertFalse(public_request.call_args.kwargs['allow_redirects'])
+        session.put.assert_not_called()
+
+    def test_private_bucket_route_mismatch_fails(self):
+        d1, session = MagicMock(), MagicMock()
+        d1.execute_raw_sql.return_value = {'result': [{'results': [{'id': 'doc-id', 'slug': 'example-2025'}]}]}
+        session.get.return_value.status_code = 200
+        session.get.return_value.iter_content.return_value = [b'actual cover']
+        public = MagicMock(status_code=200)
+        public.iter_content.return_value = [b'fallback image']
+        with patch('requests.get', return_value=public), self.assertRaisesRegex(RuntimeError, 'Could not verify'):
+            verify_private_app_route(d1, session, 'https://api.cloudflare.com/bucket', 'https://tailieu.beekip.vn')
+
     def test_failed_source_is_not_a_successful_empty_feed(self):
         db, pipeline = MagicMock(), MagicMock()
         pipeline.cloud_mode = True
@@ -190,6 +214,10 @@ class CloudSafety(unittest.TestCase):
             self.assertEqual(pipeline.r2.upload_document.call_count, 2)
             pipeline.d1.insert_document.assert_called_once()
             self.assertGreater(pipeline.d1.insert_document.call_args.kwargs['page_count'], 0)
+            self.assertTrue(pipeline.d1.insert_document.call_args.kwargs['cover_url'].endswith('/cover'))
+            self.assertIn('/api/documents/', pipeline.d1.insert_document.call_args.args[1])
+            cover_args = pipeline.r2.upload_document.call_args_list[1].kwargs
+            self.assertRegex(cover_args['storage_key'], r'^documents/v1/[a-f0-9-]{36}/cover\.jpg$')
 
     def test_qa_rejection_never_uploads(self):
         with tempfile.TemporaryDirectory() as tmp:

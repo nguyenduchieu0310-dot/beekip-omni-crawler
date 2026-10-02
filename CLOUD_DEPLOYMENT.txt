@@ -5,7 +5,7 @@ TRẠNG THÁI HIỆN TẠI
 - Git 2.53.0 đã cài. Mã crawler nằm trong D:\Crawl Data Tài liệu cho Beekip.
 - Registry hiện có 16 nguồn ACTIVE; chưa xác minh 20+ nguồn hoạt động.
 - Đọc được schema D1 và bucket R2 bằng đăng nhập Cloudflare cục bộ.
-- Bucket khai-phong-lms-staging-files chưa có custom domain: không tự giả định files.beekip.vn là URL đúng.
+- Bucket khai-phong-lms-staging-files giữ riêng tư. Đã kiểm chứng ảnh bìa từ API tailieu.beekip.vn khớp bytes trong R2.
 - Repository Private đã tạo: https://github.com/nguyenduchieu0310-dot/beekip-omni-crawler. Ba Secrets định danh đã được cấu hình. Lịch vẫn tắt; chưa có lần ingest thành công.
 - Git cục bộ: nguyenduchieu0310-dot. Kết nối GitHub trong ứng dụng: huy12032005-cyber.
   Người dùng đã chọn nguyenduchieu0310-dot làm chủ repository crawler.
@@ -36,9 +36,10 @@ BƯỚC TIẾP THEO
    CLOUDFLARE_R2_BUCKET = khai-phong-lms-staging-files
    CLOUDFLARE_API_TOKEN = token API lâu dài giới hạn quyền D1 + R2 cần thiết trong tài khoản này.
    Không dùng OAuth đăng nhập Wrangler ngắn hạn làm credential 24/7. Không dán token vào chat/mã nguồn.
-4. Xác định URL HTTPS phục vụ tệp của đúng bucket. Đặt repository Variable R2_PUBLIC_BASE_URL.
-   Runner hiện yêu cầu custom domain R2 active, không tự bật bucket public hoặc thay DNS.
-   Nếu ứng dụng phục vụ tệp qua Worker/private binding, cần tích hợp đúng API đó trước khi chạy publisher này.
+4. Crawler đã tích hợp ứng dụng hiện có tại https://tailieu.beekip.vn với R2 riêng tư.
+   PDF được phục vụ qua /api/documents/{slug}/download; ảnh bìa qua /api/documents/{slug}/cover.
+   Ảnh bìa lưu tại documents/v1/{id}/cover.jpg theo đúng hợp đồng của ứng dụng.
+   Không cần R2_PUBLIC_BASE_URL hoặc mở public bucket. Preflight đối chiếu SHA-256 giữa ảnh API và R2.
 5. Kiểm tra Billing của cả GitHub và Cloudflare. Đặt Actions budget dừng chi tiêu vượt mức
    (Stop usage when budget limit is reached), xác nhận quota chưa bị workflow khác sử dụng hết.
    GitHub Free repo private: 2.000 phút/tháng chia sẻ trên tài khoản.
@@ -75,7 +76,15 @@ https://developers.cloudflare.com/r2/pricing/
 https://developers.cloudflare.com/d1/platform/pricing/
 
 KẾT QUẢ KIỂM THỬ CỤC BỘ
-29/29 kiểm thử liên quan đã qua, gồm 14 kiểm thử cloud mới. Kiểm thử từ bản đóng gói riêng và kiểm tra cú pháp YAML/PowerShell cũng đạt. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud. Chưa chạy GitHub Actions/Linux thực tế.
+29 kiểm thử của bản chuẩn bị đã qua; bản tích hợp R2 riêng tư hiện có 16 kiểm thử cloud đã qua. Actionlint kiểm tra ngữ cảnh GitHub và YAML đã qua. Preflight đọc Cloudflare thực tế trên máy đã qua. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud.
+
+TRẠNG THÁI TRIỂN KHAI GITHUB
+- Chủ repo đã xác minh: nguyenduchieu0310-dot. Repo Private, đã push nhánh main.
+- Đã lưu và đọc lại tên ba Secrets: CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_D1_DATABASE_ID, CLOUDFLARE_R2_BUCKET.
+- CLOUDFLARE_API_TOKEN còn thiếu; người dùng đang được hướng dẫn tạo token và thêm trực tiếp vào GitHub.
+- BEEKIP_CLOUD_ENABLED=false. Chưa có lần ingest hoặc runner Linux thành công.
+- GitHub từng từ chối cú pháp runner.temp trong job env ở commit ccff1c2; đã sửa tại 6dcfce1 và xác nhận bằng actionlint.
+- Token Git cục bộ không đọc được Billing API (HTTP 404). Cần kiểm tra hạn mức/budget tại trang Billing trước khi bật lịch theo yêu cầu 0đ.
 
 
 

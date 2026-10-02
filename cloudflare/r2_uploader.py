@@ -36,11 +36,12 @@ class CloudflareR2Uploader:
         academic_year: str,
         document_slug: str,
         mime_type: str = "application/pdf",
-        ext: str = "pdf"
+        ext: str = "pdf",
+        storage_key: Optional[str] = None
     ) -> Tuple[str, str]:
         """
         Upload document to R2 with partitioning:
-        files/{subject_slug}/{academic_year}/{document_slug}_{short_uuid}.{ext}
+        Content-addressed files, or an explicit key required by the existing app.
         Returns: (r2_storage_key, public_file_url)
         """
         if not self.api_token:
@@ -52,7 +53,9 @@ class CloudflareR2Uploader:
             file_bytes = file_input
 
         digest = hashlib.sha256(file_bytes).hexdigest()
-        storage_key = f"files/crawler/{subject_slug}/{academic_year}/{digest}.{ext}"
+        storage_key = storage_key or f"files/crawler/{subject_slug}/{academic_year}/{digest}.{ext}"
+        if storage_key.startswith('/') or '..' in storage_key.split('/'):
+            raise ValueError('Invalid R2 storage key')
         from urllib.parse import quote
         endpoint_url = (
             f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/"

@@ -2,7 +2,11 @@
 import hashlib
 import logging
 import tempfile
+import uuid
 from pathlib import Path
+from urllib.parse import quote
+
+from core.config import BEEKIP_BASE_URL
 
 from adapters.factory import get_adapter_for_source
 from processing.file_downloader import ResilientFileDownloader
@@ -136,9 +140,12 @@ class CloudPipeline:
                     raise RuntimeError('CRAWLER_STORAGE_LIMIT_2_GIB')
                 self.bytes_uploaded += total
                 subject = SEOGEOEnricher.generate_slug(meta.subject)
-                key, file_url = self.r2.upload_document(payload, subject, meta.academic_year, meta.slug)
-                cover_key, cover_url = self.r2.upload_document(cover_bytes, subject, meta.academic_year, meta.slug,
-                                                               mime_type='image/jpeg', ext='jpg')
+                key, _ = self.r2.upload_document(payload, subject, meta.academic_year, meta.slug)
+                doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, url))
+                cover_key, _ = self.r2.upload_document(cover_bytes, subject, meta.academic_year, meta.slug,
+                    mime_type='image/jpeg', ext='jpg', storage_key=f'documents/v1/{doc_id}/cover.jpg')
+                route = BEEKIP_BASE_URL.rstrip('/') + '/api/documents/' + quote(meta.slug, safe='')
+                file_url, cover_url = route + '/download', route + '/cover'
                 for content, object_key, public_url in ((payload, key, file_url), (cover_bytes, cover_key, cover_url)):
                     self.db.record_file_blob(hashlib.sha256(content).hexdigest(), len(content), object_key, public_url, url)
                 meta.description = description
