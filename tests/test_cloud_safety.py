@@ -224,7 +224,7 @@ class CloudSafety(unittest.TestCase):
             with patch('services.cloud_pipeline.get_adapter_for_source') as adapter, patch('services.cloud_pipeline.DeepSanitizerEngine') as sanitizer:
                 adapter.return_value.extract_download_links.return_value = [MagicMock(file_type='PDF', url='https://x/f.pdf', file_name='test.pdf')]
                 sanitizer.return_value.sanitize_pdf_derivative.return_value = {'success': False}
-                self.assertFalse(pipeline.process_inbound_url(dict(url='https://x/a', title='Đề thi Toán 12 2025', published_year=2025), {}))
+                self.assertIsNone(pipeline.process_inbound_url(dict(url='https://x/a', title='Đề thi Toán 12 2025', published_year=2025), {}))
             pipeline.r2.upload_document.assert_not_called()
             pipeline.d1.insert_document.assert_not_called()
 
@@ -238,6 +238,27 @@ class CloudSafety(unittest.TestCase):
             self.assertIsNone(result)
             self.assertIn(
                 unittest.mock.call('https://x/article', 'SKIPPED_NO_DOCUMENT', 'No supported document link'),
+                pipeline.db.update_inbound_status.call_args_list,
+            )
+            pipeline.r2.upload_document.assert_not_called()
+            pipeline.d1.insert_document.assert_not_called()
+
+    def test_cover_qa_failure_is_terminal_and_never_uploads(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = self.prepare_pipeline(Path(tmp))
+            with patch('services.cloud_pipeline.get_adapter_for_source') as adapter, \
+                    patch('services.cloud_pipeline.DerivativeRendererEngine') as renderer:
+                adapter.return_value.extract_download_links.return_value = [
+                    MagicMock(file_type='PDF', url='https://x/f.pdf', file_name='test.pdf')]
+                renderer.return_value.validate_pdf_standards.return_value = {'malware_free': True}
+                renderer.return_value.render_cover_thumbnail.return_value = {
+                    'success': True, 'meets_google_discover': False}
+                result = pipeline.process_inbound_url(
+                    dict(url='https://x/cover', title='Đề thi Toán 12 2025', published_year=2025), {})
+            self.assertIsNone(result)
+            self.assertIn(
+                unittest.mock.call('https://x/cover', 'QA_REJECTED',
+                                   'Cover failed >=1200px/<=250KiB QA'),
                 pipeline.db.update_inbound_status.call_args_list,
             )
             pipeline.r2.upload_document.assert_not_called()

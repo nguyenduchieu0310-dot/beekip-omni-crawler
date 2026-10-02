@@ -198,17 +198,21 @@ class DerivativeRendererEngine:
             if img.mode != "RGB":
                 img = img.convert("RGB")
 
-            # Lưu và kiểm soát dung lượng <= 250 KB
+            # Lưu và kiểm soát dung lượng <= 250 KB. Dense exam pages can remain
+            # above the limit at quality 70, so continue down to 30 while keeping
+            # the required 1200px width.
             current_quality = quality
-            for _ in range(4):
+            encoded = None
+            for current_quality in range(quality, 29, -6):
                 buffer = io.BytesIO()
-                img.save(buffer, format=format_type, quality=current_quality, optimize=True)
+                img.save(buffer, format=format_type, quality=current_quality,
+                         optimize=True, progressive=True, subsampling=2)
                 size = buffer.tell()
-                if size <= MAX_COVER_SIZE_BYTES or current_quality <= 70:
-                    with open(output_image_path, "wb") as f_out:
-                        f_out.write(buffer.getvalue())
+                encoded = buffer.getvalue()
+                if size <= MAX_COVER_SIZE_BYTES:
                     break
-                current_quality -= 5  # Giảm chất lượng từng bước nhỏ nếu vượt 250KB
+            with open(output_image_path, "wb") as f_out:
+                f_out.write(encoded or b'')
 
             final_size = output_image_path.stat().st_size
             w, h = img.size

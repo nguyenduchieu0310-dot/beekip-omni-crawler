@@ -118,10 +118,13 @@ class CloudPipeline:
                     return None
                 cleaned = DeepSanitizerEngine().sanitize_pdf_derivative(pdf, clean_pdf)
                 if not cleaned.get('success'):
-                    raise RuntimeError('SANITIZATION_FAILED')
+                    self.db.update_inbound_status(url, 'QA_REJECTED', 'Sanitization failed')
+                    return None
                 rendered = renderer.render_cover_thumbnail(clean_pdf, cover)
                 if not rendered.get('meets_google_discover'):
-                    raise RuntimeError('COVER_QA_FAILED')
+                    detail = 'Cover failed >=1200px/<=250KiB QA'
+                    self.db.update_inbound_status(url, 'QA_REJECTED', detail)
+                    return None
                 quality = renderer.validate_pdf_standards(clean_pdf)
                 count = quality.get('page_count', 0)
                 author = meta.geo_school or 'Beekip (số hóa; tác giả chưa xác minh)'
