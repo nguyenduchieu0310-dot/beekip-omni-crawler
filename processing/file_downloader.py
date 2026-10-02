@@ -41,6 +41,7 @@ class ResilientFileDownloader:
     def __init__(self, session: Optional[requests.Session] = None):
         self.session = session or requests.Session()
         self.session.headers.update({"User-Agent": DEFAULT_USER_AGENT})
+        self.last_failure_code: Optional[str] = None
 
     def download(
         self,
@@ -50,6 +51,7 @@ class ResilientFileDownloader:
         max_retries: int = 3
     ) -> Optional[DownloadedFileResult]:
         """Download file and return file details with SHA-256 hash."""
+        self.last_failure_code = None
         domain = global_rate_limiter.extract_domain(url)
         global_rate_limiter.wait_if_needed(domain)
 
@@ -96,6 +98,7 @@ class ResilientFileDownloader:
                     return self._save_stream_to_disk(resp, original_url, dest_dir, preferred_name)
                 elif resp.status_code in (404, 403, 410):
                     logger.warning("GDrive download unrecoverable status %s for file_id %s", resp.status_code, file_id)
+                    self.last_failure_code = 'UNAVAILABLE_DOCUMENT'
                     return None
 
                 logger.warning("GDrive download status %s for file_id %s (attempt %s)", resp.status_code, file_id, attempt)
@@ -104,6 +107,7 @@ class ResilientFileDownloader:
 
             time.sleep(2.0 * attempt)
 
+        self.last_failure_code = 'TRANSIENT_DOWNLOAD_FAILED'
         return None
 
     def _download_direct(
@@ -117,6 +121,7 @@ class ResilientFileDownloader:
         url_lower = url.lower()
         if any(url_lower.endswith(ext) or f"{ext}?" in url_lower for ext in DISALLOWED_IMAGE_EXTENSIONS):
             logger.info("Chặn tải tệp ảnh: %s", url)
+            self.last_failure_code = 'IMAGE_REJECTED'
             return None
 
         for attempt in range(1, max_retries + 1):
@@ -125,12 +130,14 @@ class ResilientFileDownloader:
                 content_type = resp.headers.get("Content-Type", "").lower()
                 if content_type.startswith("image/"):
                     logger.info("Chặn tải tệp do Content-Type là ảnh (%s): %s", content_type, url)
+                    self.last_failure_code = 'IMAGE_REJECTED'
                     return None
 
                 if resp.status_code == 200:
                     return self._save_stream_to_disk(resp, url, dest_dir, preferred_name)
                 elif resp.status_code in (404, 403, 410):
                     logger.warning("Direct download unrecoverable status %s: %s", resp.status_code, url)
+                    self.last_failure_code = 'UNAVAILABLE_DOCUMENT'
                     return None
 
                 logger.warning("Direct download failed %s status %s (attempt %s)", url, resp.status_code, attempt)
@@ -139,6 +146,7 @@ class ResilientFileDownloader:
 
             time.sleep(2.0 * attempt)
 
+        self.last_failure_code = 'TRANSIENT_DOWNLOAD_FAILED'
         return None
 
     def _save_stream_to_disk(
@@ -151,6 +159,7 @@ class ResilientFileDownloader:
         content_type = resp.headers.get("Content-Type", "").lower()
         if content_type.startswith("image/"):
             logger.info("Chặn lưu tệp do Content-Type là ảnh (%s): %s", content_type, source_url)
+            self.last_failure_code = 'IMAGE_REJECTED'
             return None
 
         content_disposition = resp.headers.get("Content-Disposition", "")
@@ -169,6 +178,7 @@ class ResilientFileDownloader:
         fn_lower = filename.lower()
         if any(fn_lower.endswith(ext) for ext in DISALLOWED_IMAGE_EXTENSIONS):
             logger.info("Chặn lưu tệp ảnh: %s", filename)
+            self.last_failure_code = 'IMAGE_REJECTED'
             return None
 
         # Classify into 3 canonical educational document formats: PDF, Word, PowerPoint
@@ -189,6 +199,7 @@ class ResilientFileDownloader:
             else:
                 # Do NOT save HTML pages or unknown binary files as documents
                 logger.info("Bỏ qua tệp không thuộc 3 loại tài liệu (PDF, Word, PPT): %s (Content-Type: %s)", filename, content_type)
+                self.last_failure_code = 'UNSUPPORTED_FILE_TYPE'
                 return None
 
         # Route to appropriate directory and mime-type
@@ -235,6 +246,7 @@ class ResilientFileDownloader:
                 valid_header = stream.read(5) == b'%PDF-'
             if not valid_header:
                 file_path.unlink(missing_ok=True)
+                self.last_failure_code = 'INVALID_PDF'
                 return None
 
         return DownloadedFileResult(

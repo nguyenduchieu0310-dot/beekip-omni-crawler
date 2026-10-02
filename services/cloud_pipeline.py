@@ -98,7 +98,12 @@ class CloudPipeline:
             candidate = next((c for c in candidates if c.file_type == 'PDF'), candidates[0])
             downloaded = self.downloader.download(candidate.url, preferred_name=candidate.file_name)
             if downloaded is None:
-                raise RuntimeError('DOWNLOAD_FAILED_OR_NOT_A_DOCUMENT')
+                code = self.downloader.last_failure_code or 'TRANSIENT_DOWNLOAD_FAILED'
+                if code in {'IMAGE_REJECTED', 'UNSUPPORTED_FILE_TYPE', 'INVALID_PDF',
+                            'UNAVAILABLE_DOCUMENT'}:
+                    self.db.update_inbound_status(url, 'SKIPPED_UNSUPPORTED_DOCUMENT', code)
+                    return None
+                raise RuntimeError(code)
             with tempfile.TemporaryDirectory(prefix='beekip-qa-') as tmp:
                 folder = Path(tmp)
                 pdf = downloaded.file_path

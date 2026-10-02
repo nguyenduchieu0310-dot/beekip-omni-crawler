@@ -190,9 +190,11 @@ class CloudSafety(unittest.TestCase):
             response.iter_content.return_value = [b'<html>login required</html>']
             downloader = ResilientFileDownloader()
             self.assertIsNone(downloader._save_stream_to_disk(response, 'https://x/a.pdf', Path(tmp), 'a.pdf'))
+            self.assertEqual(downloader.last_failure_code, 'INVALID_PDF')
             self.assertEqual(list(Path(tmp).iterdir()), [])
             response.headers = {'Content-Type': 'image/png'}
             self.assertIsNone(downloader._save_stream_to_disk(response, 'https://x/a.pdf', Path(tmp), 'a.pdf'))
+            self.assertEqual(downloader.last_failure_code, 'IMAGE_REJECTED')
 
     def test_each_page_needs_text(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -263,6 +265,24 @@ class CloudSafety(unittest.TestCase):
             )
             pipeline.r2.upload_document.assert_not_called()
             pipeline.d1.insert_document.assert_not_called()
+
+    def test_unsupported_download_is_terminal_and_never_uploads(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pipeline = self.prepare_pipeline(Path(tmp))
+            pipeline.downloader.download.return_value = None
+            pipeline.downloader.last_failure_code = 'UNSUPPORTED_FILE_TYPE'
+            with patch('services.cloud_pipeline.get_adapter_for_source') as adapter:
+                adapter.return_value.extract_download_links.return_value = [
+                    MagicMock(file_type='PDF', url='https://x/not-a-pdf', file_name='test.pdf')]
+                result = pipeline.process_inbound_url(
+                    dict(url='https://x/unsupported', title='Đề thi Toán 12 2025', published_year=2025), {})
+            self.assertIsNone(result)
+            self.assertIn(
+                unittest.mock.call('https://x/unsupported', 'SKIPPED_UNSUPPORTED_DOCUMENT',
+                                   'UNSUPPORTED_FILE_TYPE'),
+                pipeline.db.update_inbound_status.call_args_list,
+            )
+            pipeline.r2.upload_document.assert_not_called()
 
     def test_valid_pdf_passes_real_sanitizer_render_and_qa(self):
         with tempfile.TemporaryDirectory() as tmp:
