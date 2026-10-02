@@ -1,0 +1,515 @@
+[
+  {
+    "source_id": "toanmath_rss",
+    "name": "Toán Math (Chuyên đề & Đề thi Toán THPT)",
+    "domain": "toanmath.com",
+    "tier": 4,
+    "primary_subject": "Toán",
+    "grade_levels": [
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018",
+      "GDPT 2006"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://toanmath.com/feed/",
+    "sitemap_url": "https://toanmath.com/sitemap_index.xml",
+    "check_interval_minutes": 60,
+    "file_types": [
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.0,
+    "notes": "Đã đồng bộ 15.393 tài liệu lên Beekip; nguồn cập nhật đề thi thử Toán nhanh nhất",
+    "crawl_mode": "MONITOR_ONLY"
+  },
+  {
+    "source_id": "mathvn_blogger_json",
+    "name": "MathVN (Toán học Việt Nam - Thầy Bùi Thế Linh)",
+    "domain": "mathvn.com",
+    "tier": 4,
+    "primary_subject": "Toán",
+    "grade_levels": [
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "BLOGGER_JSON_API",
+    "feed_url": "https://mathvn.com/feeds/posts/default?alt=json",
+    "check_interval_minutes": 60,
+    "file_types": [
+      "PDF",
+      "DOCX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.0,
+    "notes": "Hỗ trợ API JSON thuần của Blogger, lấy trực tiếp metadata bài viết không cần parse HTML",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieumontoan_rss",
+    "name": "Tài Liệu Môn Toán (THCS & THPT, Đề thi HSG)",
+    "domain": "tailieumontoan.com",
+    "tier": 4,
+    "primary_subject": "Toán",
+    "grade_levels": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://tailieumontoan.com/feed/",
+    "check_interval_minutes": 120,
+    "file_types": [
+      "PDF",
+      "DOCX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.0,
+    "notes": "Đề thi học sinh giỏi Toán cấp tỉnh, cấp huyện và chuyên đề nâng cao",
+    "crawl_mode": "MONITOR_ONLY"
+  },
+  {
+    "source_id": "thuvienvatly_moi",
+    "name": "Thư viện Vật lý (Cổng học liệu Vật lý lớn nhất VN)",
+    "domain": "thuvienvatly.com",
+    "tier": 4,
+    "primary_subject": "Vật lý",
+    "grade_levels": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018",
+      "Đại học"
+    ],
+    "protocol": "HTML_POLL",
+    "feed_url": "https://thuvienvatly.com/moi.php",
+    "sitemap_url": "https://thuvienvatly.com/sitemap_0.xml",
+    "check_interval_minutes": 120,
+    "file_types": [
+      "PDF",
+      "DOCX",
+      "PPTX",
+      "ZIP"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Trang theo dõi bài mới thuvienvatly.com/moi.php cập nhật liên tục tài liệu giáo viên tải lên",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "hoahoc_org_rss",
+    "name": "Hóa học Org (Cổng thông tin & Chuyên đề Hóa học)",
+    "domain": "hoahoc.org",
+    "tier": 4,
+    "primary_subject": "Hóa học",
+    "grade_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://hoahoc.org/feed/",
+    "check_interval_minutes": 120,
+    "file_types": [
+      "PDF",
+      "DOCX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.0,
+    "notes": "Đề thi HSG Hóa, chuyên đề phân dạng bài tập hóa học 10, 11, 12",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieudieuky_rss",
+    "name": "Tài liệu Diệu kỳ (Thư viện Tiếng Anh & Olympic HSG số 1 VN)",
+    "domain": "tailieudieuky.com",
+    "tier": 4,
+    "primary_subject": "Tiếng Anh",
+    "grade_levels": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "Global Success",
+      "Chuyên Anh",
+      "Olympic"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://tailieudieuky.com/feed/",
+    "check_interval_minutes": 60,
+    "file_types": [
+      "PDF",
+      "DOCX",
+      "MP3"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.5,
+    "notes": "Nguồn chuyên Anh, HSG Quốc gia, Olympic 30/4, Duyên hải Bắc Bộ chất lượng nhất hiện nay",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieuonthi_rss",
+    "name": "Tài Liệu Ôn Thi (Đa môn Luyện thi THPTQG, HSA, TSA)",
+    "domain": "tailieuonthi.edu.vn",
+    "tier": 2,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://tailieuonthi.edu.vn/feed/",
+    "sitemap_url": "https://tailieuonthi.edu.vn/sitemap_index.xml",
+    "check_interval_minutes": 30,
+    "file_types": [
+      "PDF",
+      "DOCX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 2.0,
+    "notes": "Tốc độ lên đề thi thử các Sở GD&ĐT nhanh nhất, đề thi ĐGNL HSA, ĐGTD TSA",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieu247_sitemap",
+    "name": "Tài Liệu 247 (Ngân hàng Đề thi 63 Tỉnh Thành)",
+    "domain": "tailieu247.vn",
+    "tier": 2,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "SITEMAP_XML",
+    "sitemap_url": "https://tailieu247.vn/sitemap.xml",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "PDF",
+      "DOCX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Đề kiểm tra giữa kỳ, cuối kỳ 1, cuối kỳ 2 các trường THCS và THPT",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieugiaovien_rss",
+    "name": "Tài Liệu Giáo Viên (Kế hoạch bài dạy CV 5512 & PPT 3 bộ sách)",
+    "domain": "tailieugiaovien.edu.vn",
+    "tier": 3,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "Kết nối tri thức",
+      "Chân trời sáng tạo",
+      "Cánh diều"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://tailieugiaovien.edu.vn/feed/",
+    "sitemap_url": "https://tailieugiaovien.edu.vn/sitemap_index.xml",
+    "check_interval_minutes": 120,
+    "file_types": [
+      "DOCX",
+      "PPTX",
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Nguồn giáo án chuẩn Công văn 5512 cho tất cả các môn từ Tiểu học đến THPT",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "kenhgiaovien_sitemap",
+    "name": "Kênh Giáo Viên (Giáo án & Bài giảng Điện tử)",
+    "domain": "kenhgiaovien.com",
+    "tier": 3,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "Kết nối tri thức",
+      "Chân trời sáng tạo",
+      "Cánh diều"
+    ],
+    "protocol": "SITEMAP_XML",
+    "sitemap_url": "https://kenhgiaovien.com/sitemap.xml",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "DOCX",
+      "PPTX"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 0.4,
+    "notes": "Bài giảng PowerPoint thiết kế đẹp, giáo án chi tiết và đề kiểm tra có ma trận đặc tả",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "vnteach_sitemap",
+    "name": "VNTeach (Mạng Giáo Viên Việt Nam & Tài liệu STEM)",
+    "domain": "vnteach.com",
+    "tier": 3,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "SITEMAP_XML",
+    "sitemap_url": "https://vnteach.com/sitemap.xml",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "DOCX",
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Chia sẻ tự do từ cộng đồng giáo viên, tài liệu hoạt động trải nghiệm và STEM",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "tailieugdso_sitemap",
+    "name": "Tài Liệu Giáo Dục Số (Tài liệu chuyên môn GDPT 2018)",
+    "domain": "tailieugdso.vn",
+    "tier": 3,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "SITEMAP_XML",
+    "sitemap_url": "https://tailieugdso.vn/sitemap.xml",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "DOCX",
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Học liệu số hóa phục vụ chuyên môn giảng dạy",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "igiaoduc_portal",
+    "name": "iGiaoDuc (Kho Học Liệu Số Ngành Giáo Dục - Đề Án Chính Phủ)",
+    "domain": "igiaoduc.vn",
+    "tier": 1,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "INTERNAL_API",
+    "feed_url": "https://igiaoduc.vn",
+    "check_interval_minutes": 4320,
+    "file_types": [
+      "PDF",
+      "SCORM",
+      "MP4"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 5.0,
+    "notes": "Học liệu mở chính thống do Bộ GD&ĐT phối hợp với Đề án Hệ tri thức Việt số hóa phát triển",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "hanhtrangso_nxbgd",
+    "name": "Hành Trang Số (NXB Giáo Dục Việt Nam)",
+    "domain": "hanhtrangso.nxbgd.vn",
+    "tier": 1,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "Kết nối tri thức với cuộc sống",
+      "Chân trời sáng tạo"
+    ],
+    "protocol": "HEADLESS_SCRAPER",
+    "feed_url": "https://hanhtrangso.nxbgd.vn",
+    "check_interval_minutes": 4320,
+    "file_types": [
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 5.0,
+    "notes": "Toàn bộ Sách giáo khoa, Sách giáo viên, Sách bài tập số hóa 2 bộ sách lớn nhất nước",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "vnoi_informatics",
+    "name": "VNOI (Vietnam Olympiad in Informatics - Olympic Tin học)",
+    "domain": "vnoi.info",
+    "tier": 4,
+    "primary_subject": "Tin học",
+    "grade_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+    ],
+    "curriculum": [
+      "Chuyên Tin",
+      "Olympic"
+    ],
+    "protocol": "RSS_XML",
+    "feed_url": "https://vnoi.info/wiki/feed/",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "MD",
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Giáo trình thuật toán, cấu trúc dữ liệu và đề thi Olympic Tin học Việt Nam",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  },
+  {
+    "source_id": "vndoc_portal",
+    "name": "VnDoc (Kho Tài Liệu Tiểu Học & Đề Kiểm Tra Định Kỳ)",
+    "domain": "vndoc.com",
+    "tier": 5,
+    "primary_subject": "Đa môn",
+    "grade_levels": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "curriculum": [
+      "GDPT 2018"
+    ],
+    "protocol": "HTML_POLL",
+    "feed_url": "https://vndoc.com",
+    "check_interval_minutes": 1440,
+    "file_types": [
+      "DOCX",
+      "PDF"
+    ],
+    "status": "ACTIVE",
+    "rate_limit_delay_seconds": 3.0,
+    "notes": "Phủ rất mạnh tài liệu cấp Tiểu học (Lớp 1-5) và THCS",
+    "crawl_mode": "FULL_BACKFILL_2023"
+  }
+]

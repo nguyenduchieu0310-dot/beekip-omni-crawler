@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp.*
+.yarn/*
+dist/
+.wrangler/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env*
+.venv/
+venv/
+*.zip
+
+# Local Data & Crawled Storage (Keep exports / schemas, ignore raw binaries)
+data/files/
+data/downloads/
+data/tai_lieu_da_phan_loai/
+data/covers/
+data/logs/
+data/crawler_state.db
+data/crawler_state.db-journal
+data/beekip_service.pid
+data/stop.signal
+data/watchdog.log
+data/*.log
+
+# Testing & Build
+coverage/
+.next/
+out/
+*.tsbuildinfo
+outputs/
+work/
+
+# OS & Secrets
+.DS_Store
+Thumbs.db
+desktop.ini
+*.pem
+
+# Never ship local corpora, ledgers, exports, credentials or browser state.
+/data/*
+!/data/sources_registry.json
+*.db
+*.db-*
+*.sqlite*
+*.log
+*.pid
+*.key
+*.p12
+*.pfx
+.agents/
+.openai/
+scratch/
+/cloud-export/

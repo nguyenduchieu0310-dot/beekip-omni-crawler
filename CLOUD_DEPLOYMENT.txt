@@ -1,0 +1,80 @@
+BEEKIP CLOUD — TRẠNG THÁI VÀ CÁCH TRIỂN KHAI
+Cập nhật: 02/10/2026
+
+TRẠNG THÁI HIỆN TẠI
+- Git 2.53.0 đã cài. Mã crawler nằm trong D:\Crawl Data Tài liệu cho Beekip.
+- Registry hiện có 16 nguồn ACTIVE; chưa xác minh 20+ nguồn hoạt động.
+- Đọc được schema D1 và bucket R2 bằng đăng nhập Cloudflare cục bộ.
+- Bucket khai-phong-lms-staging-files chưa có custom domain: không tự giả định files.beekip.vn là URL đúng.
+- Chưa tạo/push repository, chưa thêm Secrets, chưa bật lịch, chưa có một lần Actions ingest thành công.
+- Git cục bộ: nguyenduchieu0310-dot. Kết nối GitHub trong ứng dụng: huy12032005-cyber.
+  Cần xác định tài khoản/repo đích trước khi tạo tài nguyên.
+
+MÃ ĐÃ CHUẨN BỊ
+- Cron UTC 0 1,5,9,13,17,21 * * * tương ứng 00/04/08/12/16/20 giờ Việt Nam.
+- Ubuntu job tối đa 8 phút, tiến trình tối đa 330 giây, 3 tài liệu/lượt.
+- Tối đa dự kiến theo timeout: 1.488 phút/31 ngày, chưa tính chạy tay, workflow khác và thời gian làm tròn.
+- Không upload artifact/cache. Workflow chỉ có quyền contents: read; action được ghim commit.
+- Tiến độ, ETag và hàng đợi lưu D1; không phụ thuộc SQLite trên máy cá nhân hoặc runner.
+- Định danh R2 theo nội dung; ID D1 theo URL nguồn; không INSERT OR REPLACE bản ghi có sẵn.
+- Dừng khi lỗi làm sạch, lỗi render, thiếu lớp chữ hoặc không đạt cổng QA.
+- Kiểm tra >=2023 không dùng tên sách mới làm bằng chứng năm xuất bản.
+- Trần download 50 MiB/tệp, upload 50 MiB/lượt và ledger crawler 2 GiB.
+  Đây là giới hạn của crawler, KHÔNG phải hard cap chi phí toàn tài khoản R2.
+- Bản sao các file gốc nằm tại outputs\cloud_setup_backup. Không xử lý hàng loạt kho raw cũ.
+
+BƯỚC TIẾP THEO
+1. Tạo repository Private tên beekip-omni-crawler trong tài khoản được chọn.
+   Không cần README/.gitignore tự tạo từ GitHub.
+2. Chạy push_to_github.bat và nhập URL HTTPS của repo.
+   Script chỉ đóng gói dependency Python của crawler vào cloud-export, kiểm tra dấu hiệu secret,
+   xác minh repo private và writable, rồi push main. Không force push, không thay remote khác.
+   KHÔNG chạy git add . ở thư mục nguồn hỗn hợp: có nhiều workflow triển khai website không liên quan.
+3. Thêm 4 repository Secrets:
+   CLOUDFLARE_ACCOUNT_ID = f486ca0e5773032c7bf96c231489a0ea
+   CLOUDFLARE_D1_DATABASE_ID = 1277b081-4c8b-41b4-b4c7-0007a4759c07
+   CLOUDFLARE_R2_BUCKET = khai-phong-lms-staging-files
+   CLOUDFLARE_API_TOKEN = token API lâu dài giới hạn quyền D1 + R2 cần thiết trong tài khoản này.
+   Không dùng OAuth đăng nhập Wrangler ngắn hạn làm credential 24/7. Không dán token vào chat/mã nguồn.
+4. Xác định URL HTTPS phục vụ tệp của đúng bucket. Đặt repository Variable R2_PUBLIC_BASE_URL.
+   Runner hiện yêu cầu custom domain R2 active, không tự bật bucket public hoặc thay DNS.
+   Nếu ứng dụng phục vụ tệp qua Worker/private binding, cần tích hợp đúng API đó trước khi chạy publisher này.
+5. Kiểm tra Billing của cả GitHub và Cloudflare. Đặt Actions budget dừng chi tiêu vượt mức
+   (Stop usage when budget limit is reached), xác nhận quota chưa bị workflow khác sử dụng hết.
+   GitHub Free repo private: 2.000 phút/tháng chia sẻ trên tài khoản.
+   R2 Standard free tier: 10 GB-tháng, 1 triệu Class A, 10 triệu Class B/tháng.
+   R2 có thể tính phí vượt quota; không có cam kết 0đ từ giới hạn trong mã.
+   D1 Free: 5 triệu rows read/ngày, 100.000 rows written/ngày, 5 GB lưu trữ tổng.
+6. Actions > Beekip 24/7 Autonomous Crawler & Ingestion > Run workflow > mode=preflight.
+   Preflight chỉ đọc Cloudflare. Dấu xanh ở chế độ này KHÔNG chứng minh đã đăng được tài liệu.
+7. Sau khi preflight và billing đã kiểm tra: đặt Variable BEEKIP_CLOUD_ENABLED=true,
+   chạy mode=ingest; kiểm tra summary có deployed_count>0, bản ghi D1, PDF và cover thật.
+   Lịch định kỳ chỉ hoạt động khi biến này true. Đặt false để dừng các lần schedule tiếp theo.
+   Với job đang chạy, dùng Cancel workflow.
+8. Sau một lần ingest và một lần schedule thành công, có thể tắt máy tính cá nhân.
+   GitHub có thể trì hoãn hoặc bỏ lượt cron lúc tải cao; không phải dịch vụ realtime hay bảo đảm vĩnh viễn.
+
+GIỚI HẠN CẦN HIỂU RÕ
+- Word/PowerPoint cần LibreOffice để chuyển PDF. Workflow chưa cài bộ chuyển đổi;
+  tệp Office sẽ ở NEEDS_OFFICE_CONVERTER nếu runner không có LibreOffice. Không đăng nguyên tệp chưa QA.
+- PDF scan thiếu text/OCR hoặc các trang ít hơn 150 ký tự sẽ bị chặn.
+- Làm sạch watermark/PII dùng quy tắc và kiểm tra tự động, không chứng minh an toàn tuyệt đối hay sạch 100%.
+- Nội dung cloud chỉ mô tả metadata và gợi ý sử dụng; cần đánh giá biên tập, schema.org và tích hợp sitemap trước khi xuất bản quy mô lớn.
+- QA_REJECTED và NEEDS_OFFICE_CONVERTER được giữ để kiểm tra; không tự thử mãi gây tiêu phí.
+- Các bảng beekip_crawler_* chỉ được tạo khi ingest; chưa được tạo trong kiểm tra cục bộ.
+- Giới hạn 2 GiB theo ledger không tính dữ liệu R2 của ứng dụng khác, object cũ hoặc upload dang dở.
+- Sitemap hiện do website quản lý. Đã bỏ bước gọi services.sitemap_generator không tồn tại;
+  chưa triển khai sitemap/IndexNow ngoài website, không gọi API ping sitemap cũ của Google.
+- Chỉ một repository và một workflow được dùng chung ledger; concurrency GitHub không khóa các repo khác.
+
+TÀI LIỆU CHÍNH THỨC ĐÃ ĐỐI CHIẾU
+https://docs.github.com/en/billing/concepts/product-billing/github-actions
+https://docs.github.com/en/billing/how-tos/set-up-budgets
+https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule
+https://developers.cloudflare.com/r2/pricing/
+https://developers.cloudflare.com/d1/platform/pricing/
+
+KẾT QUẢ KIỂM THỬ CỤC BỘ
+29/29 kiểm thử liên quan đã qua, gồm 14 kiểm thử cloud mới. Kiểm thử từ bản đóng gói riêng và kiểm tra cú pháp YAML/PowerShell cũng đạt. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud. Chưa chạy GitHub Actions/Linux thực tế.
+
+

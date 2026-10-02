@@ -1,0 +1,116 @@
+"""
+Headless Cloud Delta Runner for Beekip.
+Designed to run in GitHub Actions Scheduled Cronjobs or headless cloud environments.
+Scans active sources for documents >= 2023, sanitizes, and deploys directly to Cloudflare R2 + D1.
+"""
+
+import argparse
+import json
+import logging
+import os
+import sys
+import time
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
+
+# Ensure UTF-8 output
+if sys.platform.startswith("win"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] [CloudRunner] %(message)s"
+)
+logger = logging.getLogger("beekip.cloud_runner")
+
+def preflight(local_read_only=False):
+    import requests
+    from urllib.parse import urlparse
+    from core import config
+    from cloudflare.d1_deployer import CloudflareD1Deployer
+    names = ('CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID',
+             'CLOUDFLARE_R2_BUCKET', 'CLOUDFLARE_API_TOKEN')
+    if not local_read_only:
+        missing = [name for name in names if not os.environ.get(name, '').strip()]
+        if missing:
+            raise RuntimeError('Missing repository secrets: ' + ', '.join(missing))
+    token = config.get_cloudflare_token()
+    if not token:
+        raise RuntimeError('No Cloudflare credential available')
+    d1 = CloudflareD1Deployer(api_token=token)
+    columns = d1._get_columns()
+    required = {'id', 'slug', 'source_object_key', 'cover_url', 'is_published', 'audience_tags_json'}
+    if not required <= columns:
+        raise RuntimeError('D1 schema is incompatible with this publisher')
+    session = requests.Session()
+    session.headers['Authorization'] = 'Bearer ' + token
+    bucket_api = f'https://api.cloudflare.com/client/v4/accounts/{config.CLOUDFLARE_ACCOUNT_ID}/r2/buckets/{config.CLOUDFLARE_R2_BUCKET}'
+    def read(path):
+        response = session.get(bucket_api + path, timeout=20)
+        if response.status_code != 200:
+            raise RuntimeError(f'Cloudflare preflight HTTP {response.status_code}')
+        data = response.json()
+        if not data.get('success'):
+            raise RuntimeError('Cloudflare preflight returned success=false')
+        return data['result']
+    read('')
+    domain_data = read('/domains/custom')
+    domains = domain_data.get('domains', [])
+    public_base = os.environ.get('R2_PUBLIC_BASE_URL', '').rstrip('/')
+    parsed = urlparse(public_base)
+    valid_domains = [d.get('domain') for d in domains
+                     if d.get('enabled') and d.get('status', {}).get('ownership') == 'active'
+                     and d.get('status', {}).get('ssl') == 'active']
+    if parsed.scheme != 'https' or parsed.path or parsed.query or parsed.fragment or parsed.username or parsed.hostname not in valid_domains:
+        raise RuntimeError('R2_PUBLIC_BASE_URL must be an active HTTPS custom domain attached to this bucket; no public URL has been verified')
+    # Authenticated local OAuth is allowed for this read-only check, never exported as a secret.
+    logger.info('Preflight passed: D1 schema, R2 bucket and custom domain')
+    return d1
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--mode', choices=('preflight', 'ingest'), default='preflight')
+    parser.add_argument('--local-read-only', action='store_true')
+    args = parser.parse_args()
+    if args.local_read_only and args.mode != 'preflight':
+        parser.error('--local-read-only is restricted to preflight')
+    try:
+        d1 = preflight(args.local_read_only)
+        if args.mode == 'preflight':
+            return 0
+        if os.getenv('BEEKIP_CLOUD_ENABLED') != 'true':
+            raise RuntimeError('Set BEEKIP_CLOUD_ENABLED=true after verifying billing limits and preflight')
+        from cloudflare.cloud_ledger import CloudLedger
+        from cloudflare.r2_uploader import CloudflareR2Uploader
+        from services.cloud_pipeline import CloudPipeline
+        from services.omni_scheduler import OmniSchedulerDaemon
+        ledger = CloudLedger(d1)
+        ledger.initialize()
+        pipeline = CloudPipeline(ledger, CloudflareR2Uploader(), d1)
+        daemon = OmniSchedulerDaemon(db=ledger, pipeline=pipeline)
+        try:
+            result = daemon.run_single_cycle(max_items_per_cycle=3, scan_budget_seconds=120)
+        finally:
+            daemon.worker_pool.shutdown(wait=True)
+        report = json.dumps(result, ensure_ascii=False, indent=2)
+        logger.info('Cloud result: %s', report)
+        summary_path = os.getenv('GITHUB_STEP_SUMMARY')
+        if summary_path:
+            with open(summary_path, 'a', encoding='utf-8') as summary:
+                summary.write('Beekip ingestion result\n\n```json\n' + report + '\n```\n')
+        return 1 if result['failed_count'] or result['source_errors'] or not result['sources_checked'] else 0
+    except Exception as exc:
+        logger.error('Cloud cycle stopped: %s', str(exc) if isinstance(exc, RuntimeError) else type(exc).__name__)
+        return 1
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())
