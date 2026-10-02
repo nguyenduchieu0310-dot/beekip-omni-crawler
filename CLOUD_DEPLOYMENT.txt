@@ -6,9 +6,9 @@ TRẠNG THÁI HIỆN TẠI
 - Registry hiện có 16 nguồn ACTIVE; chưa xác minh 20+ nguồn hoạt động.
 - Đọc được schema D1 và bucket R2 bằng đăng nhập Cloudflare cục bộ.
 - Bucket khai-phong-lms-staging-files chưa có custom domain: không tự giả định files.beekip.vn là URL đúng.
-- Chưa tạo/push repository, chưa thêm Secrets, chưa bật lịch, chưa có một lần Actions ingest thành công.
+- Repository Private đã tạo: https://github.com/nguyenduchieu0310-dot/beekip-omni-crawler. Ba Secrets định danh đã được cấu hình. Lịch vẫn tắt; chưa có lần ingest thành công.
 - Git cục bộ: nguyenduchieu0310-dot. Kết nối GitHub trong ứng dụng: huy12032005-cyber.
-  Cần xác định tài khoản/repo đích trước khi tạo tài nguyên.
+  Người dùng đã chọn nguyenduchieu0310-dot làm chủ repository crawler.
 
 MÃ ĐÃ CHUẨN BỊ
 - Cron UTC 0 1,5,9,13,17,21 * * * tương ứng 00/04/08/12/16/20 giờ Việt Nam.
@@ -76,5 +76,6 @@ https://developers.cloudflare.com/d1/platform/pricing/
 
 KẾT QUẢ KIỂM THỬ CỤC BỘ
 29/29 kiểm thử liên quan đã qua, gồm 14 kiểm thử cloud mới. Kiểm thử từ bản đóng gói riêng và kiểm tra cú pháp YAML/PowerShell cũng đạt. Kiểm tra mở rộng phát hiện lỗi có sẵn test_core.test_inbound_queue_and_dedup (SQLite đếm UPDATE như INSERT); không thuộc ledger D1 cloud. Chưa chạy GitHub Actions/Linux thực tế.
+
 
 
