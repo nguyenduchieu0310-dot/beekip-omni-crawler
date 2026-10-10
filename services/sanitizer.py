@@ -191,15 +191,23 @@ class DeepSanitizerEngine:
                     total_findings += len(page_findings)
 
                 # Scan translucent background image watermarks (XObjects)
+                # Chỉ coi là watermark nếu ảnh chiếm phần lớn diện tích trang (background overlay >= 60%)
+                # Hình học, đồ thị bài toán toán học chiếm diện tích cục bộ bên trong câu hỏi, không phải watermark
                 for img_info in page.get_images(full=True):
                     xref = img_info[0]
-                    # Check image dimensions vs page dimensions (watermark background often covers >= 50% of page)
-                    base_img = doc.extract_image(xref)
-                    if base_img:
-                        w, h = base_img.get("width", 0), base_img.get("height", 0)
-                        # Watermark logo chìm thường có tỷ lệ kích thước lớn nhưng dung lượng vừa phải
-                        if w >= 400 and h >= 400:
-                            watermark_images_detected += 1
+                    rects = page.get_image_rects(xref)
+                    if rects:
+                        page_area = max(1.0, page.rect.width * page.rect.height)
+                        for r in rects:
+                            img_area = r.width * r.height
+                            if (img_area / page_area) >= 0.60:
+                                watermark_images_detected += 1
+                    else:
+                        base_img = doc.extract_image(xref)
+                        if base_img:
+                            w, h = base_img.get("width", 0), base_img.get("height", 0)
+                            if w >= 1500 and h >= 2000:
+                                watermark_images_detected += 1
 
             doc.close()
 

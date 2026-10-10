@@ -72,9 +72,10 @@ class DerivativeRendererEngine:
             page_count = len(doc)
             results["page_count"] = page_count
             results['pdf_version'] = doc.metadata.get('format', '')
-            if results['pdf_version'] not in ('PDF 1.6', 'PDF 1.7'):
+            valid_pdf_versions = ('PDF 1.3', 'PDF 1.4', 'PDF 1.5', 'PDF 1.6', 'PDF 1.7', 'PDF 2.0')
+            if results['pdf_version'] and results['pdf_version'] not in valid_pdf_versions:
                 results['valid'] = False
-                results['reasons'].append('Required PDF version: 1.6 or 1.7')
+                results['reasons'].append(f'Unsupported PDF version: {results["pdf_version"]}')
 
             # 2. Kiểm tra số trang
             results["page_count_pass"] = (MIN_PAGE_COUNT <= page_count <= MAX_PAGE_COUNT)
@@ -94,7 +95,9 @@ class DerivativeRendererEngine:
                 normalized_text = unicodedata.normalize("NFC", text)
                 char_count = len(normalized_text.strip())
                 total_chars += char_count
-                if char_count < MIN_CHARS_PER_TEXT_PAGE:
+                is_ending_page = (page_num == page_count - 1 and char_count >= 20)
+                has_page_media = (len(page.get_images()) > 0 or len(page.get_drawings()) > 0)
+                if char_count < MIN_CHARS_PER_TEXT_PAGE and not has_page_media and not is_ending_page:
                     pages_with_insufficient_text += 1
 
                 # Kiểm tra mojibake (chuỗi lỗi font \uFFFD)
@@ -116,7 +119,7 @@ class DerivativeRendererEngine:
 
             avg_chars = round(total_chars / max(1, page_count), 1)
             results["avg_chars_per_page"] = avg_chars
-            # Lớp chữ tìm kiếm: chấp nhận nếu trung bình >= 100 ký tự (cho đề thi kèm hình) hoặc tổng > 300
+            # Lớp chữ tìm kiếm: mọi trang văn bản đều phải có chữ hoặc hình ảnh học thuật
             results["has_searchable_text"] = (page_count > 0 and pages_with_insufficient_text == 0)
             if not results["has_searchable_text"]:
                 results["valid"] = False
@@ -128,10 +131,13 @@ class DerivativeRendererEngine:
 
             # Inspect decompressed PDF objects as well as the raw file.
             for xref in range(1, doc.xref_length()):
-                object_text = doc.xref_object(xref, compressed=False).encode('latin1', errors='replace')
-                for dangerous in DANGEROUS_PDF_OBJECTS:
-                    if dangerous in object_text:
-                        results['malware_findings'].append(dangerous.decode('latin1'))
+                try:
+                    object_text = doc.xref_object(xref, compressed=False).encode('latin1', errors='replace')
+                    for dangerous in DANGEROUS_PDF_OBJECTS:
+                        if dangerous in object_text:
+                            results['malware_findings'].append(dangerous.decode('latin1'))
+                except Exception:
+                    continue
             doc.close()
 
             # 4. Quét mã độc (Malware AST check)

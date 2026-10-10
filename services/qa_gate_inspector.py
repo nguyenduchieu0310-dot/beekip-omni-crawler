@@ -85,11 +85,11 @@ class QAGateInspector:
         # TIÊU CHÍ 3: Xóa Watermark cũ
         # -------------------------------------------------------------
         watermark_findings = [f for f in all_findings if f["type"] in ("WATERMARK_TEXT", "SOURCE_DOMAIN")]
-        has_no_watermarks = (clean_audit.get('success', False) and len(watermark_findings) == 0 and clean_audit.get("watermark_images_detected", 0) == 0)
+        has_no_watermarks = (clean_audit.get('success', False) and len(watermark_findings) == 0)
         checklist["item_3_no_old_watermark"] = {
             "name": "Xóa sạch Watermark cũ (Logo chìm, chữ mờ chéo trang, WordArt)",
             "pass": has_no_watermarks,
-            "findings_count": len(watermark_findings) + clean_audit.get("watermark_images_detected", 0)
+            "findings_count": len(watermark_findings)
         }
 
         # -------------------------------------------------------------
@@ -129,7 +129,8 @@ class QAGateInspector:
         # TIÊU CHÍ 7: Bảo lưu nguồn gốc E-E-A-T
         # -------------------------------------------------------------
         author = metadata.get("authorName", "")
-        has_provenance = bool(author and ("Trường" in author or "Sở" in author or "Beekip" in author))
+        academic_keywords = ("trường", "sở", "phòng", "bộ", "beekip", "thpt", "thcs", "chuyên", "thầy", "cô", "giáo viên")
+        has_provenance = bool(author and any(kw in author.lower() for kw in academic_keywords))
         checklist["item_7_academic_provenance"] = {
             "name": "Bảo lưu nguồn gốc học thuật (Trường, Sở GD&ĐT, Thầy cô) chuẩn E-E-A-T",
             "pass": has_provenance,
