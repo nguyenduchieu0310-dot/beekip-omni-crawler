@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "beekip-crawl-hub",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "beekip.vn/hubag/crawl*",
+      "zone_name": "beekip.vn"
+    },
+    {
+      "pattern": "www.beekip.vn/hubag/crawl*",
+      "zone_name": "beekip.vn"
+    }
+  ],
+  "triggers": {
+    "crons": ["0 1,5,9,13,17,21 * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "khai-phong-lms-staging",
+      "database_id": "1277b081-4c8b-41b4-b4c7-0007a4759c07"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DOCS_BUCKET",
+      "bucket_name": "khai-phong-lms-staging-files"
+    }
+  ],
+  "vars": {
+    "APP_ENV": "production",
+    "ADMIN_USER": "admin",
+    "ADMIN_PASS": "Beekip@2026!Hub",
+    "BASE_PATH": "/hubag/crawl",
+    "JWT_SECRET": "beekip_super_secure_jwt_secret_2026_omni"
+  },
+  "observability": {
+    "enabled": true
+  }
+}
