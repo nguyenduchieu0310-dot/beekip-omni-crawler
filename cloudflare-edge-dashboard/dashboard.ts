@@ -845,8 +845,9 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
         // Top sources preview badges
         const topSourcesEl = document.getElementById('metric-top-sources');
         if (topSourcesEl && data.crawled.sources_breakdown) {
-          topSourcesEl.innerHTML = data.crawled.sources_breakdown.slice(0, 4).map(s => {
-            return '<button onclick="openSourcesModal(\'' + escapeHtml(s.source_id) + '\')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/40 text-slate-300 text-[11px] flex items-center gap-1.5 transition" title="Xem bài viết từ ' + escapeHtml(s.name) + '">' +
+          window.currentAnalyticsSources = data.crawled.sources_breakdown;
+          topSourcesEl.innerHTML = data.crawled.sources_breakdown.slice(0, 4).map((s, idx) => {
+            return '<button onclick="openSourcesModalByIndex(' + idx + ')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/40 text-slate-300 text-[11px] flex items-center gap-1.5 transition" title="Xem bài viết từ ' + escapeHtml(s.name) + '">' +
               '<span class="font-medium text-slate-200">' + escapeHtml(s.name) + ':</span>' +
               '<span class="font-mono text-indigo-400 font-bold">' + s.count + '</span>' +
             '</button>';
@@ -857,22 +858,36 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
         const instant = data.processing.instant_selected || 0;
         const needs = data.processing.needs_processing || 0;
         const done = data.processing.processed_done || 0;
-        document.getElementById('metric-instant-selected').innerText = Number(instant).toLocaleString('vi-VN');
-        document.getElementById('metric-needs-processing').innerText = Number(needs).toLocaleString('vi-VN');
-        document.getElementById('metric-processed-done').innerText = Number(done).toLocaleString('vi-VN');
+        const elInstant = document.getElementById('metric-instant-selected');
+        if (elInstant) elInstant.innerText = Number(instant).toLocaleString('vi-VN');
+        const elNeeds = document.getElementById('metric-needs-processing');
+        if (elNeeds) elNeeds.innerText = Number(needs).toLocaleString('vi-VN');
+        const elDone = document.getElementById('metric-processed-done');
+        if (elDone) elDone.innerText = Number(done).toLocaleString('vi-VN');
 
         const totalPipe = instant + needs + done || 1;
-        document.getElementById('bar-instant').style.width = Math.max(5, (instant / totalPipe * 100)) + '%';
-        document.getElementById('bar-needs').style.width = Math.max(5, (needs / totalPipe * 100)) + '%';
-        document.getElementById('bar-done').style.width = Math.max(5, (done / totalPipe * 100)) + '%';
+        const barInstant = document.getElementById('bar-instant');
+        if (barInstant) barInstant.style.width = Math.max(5, (instant / totalPipe * 100)) + '%';
+        const barNeeds = document.getElementById('bar-needs');
+        if (barNeeds) barNeeds.style.width = Math.max(5, (needs / totalPipe * 100)) + '%';
+        const barDone = document.getElementById('bar-done');
+        if (barDone) barDone.style.width = Math.max(5, (done / totalPipe * 100)) + '%';
 
         // 4. Block 3: Published
-        document.getElementById('metric-published-total').innerText = Number(data.published.total_published).toLocaleString('vi-VN');
-        document.getElementById('metric-publish-rate').innerText = (data.published.publish_rate || 100) + '%';
+        const elPub = document.getElementById('metric-published-total');
+        if (elPub) elPub.innerText = Number(data.published.total_published).toLocaleString('vi-VN');
+        const elRate = document.getElementById('metric-publish-rate');
+        if (elRate) elRate.innerText = (data.published.publish_rate || 100) + '%';
 
       } catch (err) {
         console.error('Lỗi tải analytics:', err);
       }
+    }
+
+    // Modal Sources Breakdown by index
+    function openSourcesModalByIndex(idx) {
+      const s = window.currentAnalyticsSources && window.currentAnalyticsSources[idx];
+      openSourcesModal(s ? s.source_id : '');
     }
 
     // Modal Sources Breakdown
@@ -881,10 +896,14 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
       document.getElementById('sourcesDetailModal').classList.remove('hidden');
 
       if (cachedAnalytics) {
-        document.getElementById('modalPeriodBadge').innerText = cachedAnalytics.period_label;
-        document.getElementById('modalTotalCrawledCount').innerText = Number(cachedAnalytics.crawled.total).toLocaleString('vi-VN');
-        document.getElementById('badge-source-all-count').innerText = cachedAnalytics.crawled.total;
-        document.getElementById('modalSourcesCountBadge').innerText = cachedAnalytics.crawled.sources_count + ' cổng';
+        const badgePeriod = document.getElementById('modalPeriodBadge');
+        if (badgePeriod) badgePeriod.innerText = cachedAnalytics.period_label;
+        const totalCountEl = document.getElementById('modalTotalCrawledCount');
+        if (totalCountEl) totalCountEl.innerText = Number(cachedAnalytics.crawled.total).toLocaleString('vi-VN');
+        const badgeAll = document.getElementById('badge-source-all-count');
+        if (badgeAll) badgeAll.innerText = cachedAnalytics.crawled.total;
+        const countBadge = document.getElementById('modalSourcesCountBadge');
+        if (countBadge) countBadge.innerText = cachedAnalytics.crawled.sources_count + ' cổng';
 
         renderModalSourcesList(cachedAnalytics.crawled.sources_breakdown || []);
       }
@@ -900,13 +919,15 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
       const container = document.getElementById('modalSourcesList');
       if (!container) return;
 
-      container.innerHTML = sources.map(s => {
+      window.currentModalSources = sources;
+
+      container.innerHTML = sources.map((s, idx) => {
         const isActive = (s.source_id === activeModalSourceId);
         const activeClass = isActive 
           ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-200' 
           : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700';
 
-        return '<button onclick="selectModalSource(\'' + escapeHtml(s.source_id) + '\')" class="w-full p-2.5 rounded-xl border text-left transition ' + activeClass + '">' +
+        return '<button onclick="selectModalSourceByIndex(' + idx + ')" class="w-full p-2.5 rounded-xl border text-left transition ' + activeClass + '">' +
           '<div class="flex items-center justify-between mb-1">' +
             '<div class="font-semibold text-xs truncate pr-2">' + escapeHtml(s.name) + '</div>' +
             '<span class="font-mono font-bold text-xs text-indigo-400">' + s.count + '</span>' +
@@ -920,6 +941,11 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
           '</div>' +
         '</button>';
       }).join('');
+    }
+
+    function selectModalSourceByIndex(idx) {
+      const s = window.currentModalSources && window.currentModalSources[idx];
+      if (s) selectModalSource(s.source_id);
     }
 
     function selectModalSource(sourceId) {
@@ -1121,15 +1147,23 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
         const data = await res.json();
         cachedStats = data;
 
-        document.getElementById('stat-documents').innerText = (data.total_documents || 0).toLocaleString();
-        document.getElementById('stat-r2-files').innerText = (data.total_documents || 0).toLocaleString();
-        document.getElementById('stat-queue-pending').innerText = (data.total_pending || 0).toLocaleString();
-        document.getElementById('stat-sources').innerText = (data.total_sources || 0).toLocaleString();
+        const docEl = document.getElementById('stat-documents');
+        if (docEl) docEl.innerText = (data.total_documents || 0).toLocaleString();
+        const r2El = document.getElementById('stat-r2-files');
+        if (r2El) r2El.innerText = (data.total_documents || 0).toLocaleString();
+        const qEl = document.getElementById('stat-queue-pending');
+        if (qEl) qEl.innerText = (data.total_pending || 0).toLocaleString();
+        const srcEl = document.getElementById('stat-sources');
+        if (srcEl) srcEl.innerText = (data.total_sources || 0).toLocaleString();
 
-        document.getElementById('rep-doc-count').innerText = (data.total_documents || 0).toLocaleString();
-        document.getElementById('rep-r2-count').innerText = (data.total_documents || 0).toLocaleString();
-        document.getElementById('rep-queue-count').innerText = (data.total_queue || 0).toLocaleString();
-        document.getElementById('report-timestamp').innerText = new Date().toLocaleString('vi-VN');
+        const repDocEl = document.getElementById('rep-doc-count');
+        if (repDocEl) repDocEl.innerText = (data.total_documents || 0).toLocaleString();
+        const repR2El = document.getElementById('rep-r2-count');
+        if (repR2El) repR2El.innerText = (data.total_documents || 0).toLocaleString();
+        const repQEl = document.getElementById('rep-queue-count');
+        if (repQEl) repQEl.innerText = (data.total_queue || 0).toLocaleString();
+        const repTimeEl = document.getElementById('report-timestamp');
+        if (repTimeEl) repTimeEl.innerText = new Date().toLocaleString('vi-VN');
 
         if (data.sources) {
           renderSourcesTable(data.sources);
