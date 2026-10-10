@@ -183,62 +183,229 @@ export function renderDashboardHtml(basePath: string = "/hubag/crawl", username:
     <!-- Alert Banner -->
     <div id="actionAlert" class="hidden p-4 rounded-xl text-sm font-medium transition duration-300"></div>
 
-    <!-- KPI Metric Cards Grid -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-        <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
-          <span>XUẤT BẢN TRÊN BEEKIP</span>
-          <i class="fa-solid fa-graduation-cap text-emerald-400"></i>
+    <!-- TRUNG TÂM PHÂN TÍCH & BÁO CÁO ĐA CHIỀU (MULTI-DIMENSIONAL ANALYTICS) -->
+    <div class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
+      <!-- Header + Time Period Selector -->
+      <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              <i class="fa-solid fa-chart-line text-sm"></i>
+            </span>
+            <h2 class="text-base font-bold text-slate-100">Báo Cáo Thống Kê Hiệu Năng Đa Chiều</h2>
+            <span class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-mono font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              Live Sync D1
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">
+            Theo dõi thời gian thực sản lượng bài cào từ các cổng nguồn, tiến độ khử trùng/xử lý và tài liệu đã xuất bản trên Beekip.vn
+          </p>
         </div>
-        <div id="stat-documents" class="text-2xl font-bold text-emerald-400 tracking-tight">--</div>
-        <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
-          <i class="fa-solid fa-circle-check text-emerald-400"></i> Bảng D1 documents
+
+        <!-- Period Selector Buttons -->
+        <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+          <button onclick="setAnalyticsPeriod('day')" id="btn-period-day" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-clock text-[11px] mr-1"></i> Ngày (24h)
+          </button>
+          <button onclick="setAnalyticsPeriod('week')" id="btn-period-week" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
+            <i class="fa-solid fa-calendar-week text-[11px] mr-1"></i> Tuần (7 Ngày)
+          </button>
+          <button onclick="setAnalyticsPeriod('month')" id="btn-period-month" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-calendar-days text-[11px] mr-1"></i> Tháng (30 Ngày)
+          </button>
+          <button onclick="setAnalyticsPeriod('quarter')" id="btn-period-quarter" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-chart-pie text-[11px] mr-1"></i> Quý (90 Ngày)
+          </button>
+          <button onclick="setAnalyticsPeriod('year')" id="btn-period-year" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-calendar text-[11px] mr-1"></i> Năm (365 Ngày)
+          </button>
+          <button onclick="setAnalyticsPeriod('all')" id="btn-period-all" class="px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200">
+            <i class="fa-solid fa-infinity text-[11px] mr-1"></i> Tất Cả
+          </button>
         </div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+      <!-- 3 Core Metric Blocks -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Block 1: Số bài viết Crawl được -->
+        <div class="bg-slate-950/60 border border-indigo-500/20 hover:border-indigo-500/40 rounded-2xl p-5 flex flex-col justify-between transition shadow-lg shadow-indigo-950/20">
+          <div>
+            <div class="flex items-center justify-between text-xs font-semibold text-indigo-300">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-spider text-indigo-400"></i> SỐ BÀI VIẾT CRAWL ĐƯỢC
+              </span>
+              <span id="metric-period-badge-1" class="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-300 text-[10px] font-mono">Tuần (7 Ngày)</span>
+            </div>
+
+            <div class="mt-4 flex items-baseline gap-2">
+              <div id="metric-crawled-total" class="text-3xl font-extrabold text-indigo-300 font-mono tracking-tight">--</div>
+              <span class="text-xs text-slate-400">bài thu thập</span>
+            </div>
+
+            <div class="mt-2 text-xs text-slate-400">
+              Phát hiện từ <span id="metric-sources-count" class="font-bold text-slate-200">--</span> cổng học liệu đối tác
+            </div>
+
+            <!-- Top sources preview badges -->
+            <div id="metric-top-sources" class="mt-3 flex flex-wrap gap-1.5">
+              <!-- Render dynamic mini tags -->
+            </div>
+          </div>
+
+          <button onclick="openSourcesModal()" class="w-full mt-4 py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-indigo-600/30 to-violet-600/30 hover:from-indigo-600/50 hover:to-violet-600/50 text-indigo-200 border border-indigo-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-indigo-900/30">
+            <i class="fa-solid fa-layer-group text-indigo-400"></i>
+            <span>Xem Chi Tiết Từng Cổng Nguồn &amp; Bài Viết &rarr;</span>
+          </button>
+        </div>
+
+        <!-- Block 2: Số bài đã xử lý (Pipeline & QA Status) -->
+        <div class="bg-slate-950/60 border border-amber-500/20 hover:border-amber-500/40 rounded-2xl p-5 flex flex-col justify-between transition shadow-lg shadow-amber-950/20">
+          <div>
+            <div class="flex items-center justify-between text-xs font-semibold text-amber-300">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> SỐ BÀI ĐÃ XỬ LÝ (PIPELINE &amp; QA)
+              </span>
+              <span id="metric-period-badge-2" class="px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 text-[10px] font-mono">Tuần (7 Ngày)</span>
+            </div>
+
+            <!-- 3 sub-metrics -->
+            <div class="mt-3 space-y-2 text-xs">
+              <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                  <span class="text-slate-300 font-medium">Tuyển chọn được ngay:</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-instant-selected" class="font-mono font-bold text-emerald-400 text-sm">--</span>
+                  <span class="text-[10px] text-slate-500">bài</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span class="text-slate-300 font-medium">Cần xử lý xong mới chọn:</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-needs-processing" class="font-mono font-bold text-amber-400 text-sm">--</span>
+                  <span class="text-[10px] text-slate-500">bài</span>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between p-2 rounded-xl bg-slate-900/60 border border-slate-800/60">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                  <span class="text-slate-300 font-medium">Số bài đã xử lý xong:</span>
+                </div>
+                <div class="flex items-baseline gap-1">
+                  <span id="metric-processed-done" class="font-mono font-bold text-teal-400 text-sm">--</span>
+                  <span class="text-[10px] text-slate-500">bài</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Visual Progress Bar -->
+            <div class="mt-3">
+              <div class="h-2 w-full bg-slate-900 rounded-full overflow-hidden flex">
+                <div id="bar-instant" class="bg-emerald-500 h-full transition-all duration-500" style="width: 33%"></div>
+                <div id="bar-needs" class="bg-amber-500 h-full transition-all duration-500" style="width: 33%"></div>
+                <div id="bar-done" class="bg-teal-500 h-full transition-all duration-500" style="width: 34%"></div>
+              </div>
+              <div class="flex justify-between text-[10px] text-slate-500 mt-1 font-mono">
+                <span>🟢 Tuyển chọn ngay</span>
+                <span>🟡 Cần xử lý</span>
+                <span>🔵 Hoàn tất</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 text-[11px] text-slate-400 flex items-center justify-between border-t border-slate-800/60 pt-2.5">
+            <span>Tiêu chuẩn xử lý:</span>
+            <span class="font-mono text-amber-300 font-medium">QA Gate 10/10 &bull; Deep Sanitizer</span>
+          </div>
+        </div>
+
+        <!-- Block 3: Số bài đã đăng lên Beekip -->
+        <div class="bg-slate-950/60 border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl p-5 flex flex-col justify-between transition shadow-lg shadow-emerald-950/20">
+          <div>
+            <div class="flex items-center justify-between text-xs font-semibold text-emerald-300">
+              <span class="flex items-center gap-2">
+                <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> SỐ BÀI ĐÃ ĐĂNG LÊN BEEKIP
+              </span>
+              <span id="metric-period-badge-3" class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 text-[10px] font-mono">Tuần (7 Ngày)</span>
+            </div>
+
+            <div class="mt-4 flex items-baseline gap-2">
+              <div id="metric-published-total" class="text-3xl font-extrabold text-emerald-300 font-mono tracking-tight">--</div>
+              <span class="text-xs text-slate-400">học liệu xuất bản</span>
+            </div>
+
+            <div class="mt-2 text-xs text-slate-400">
+              Trực tuyến 100% trên nền tảng <a href="https://tailieu.beekip.vn" target="_blank" class="text-emerald-400 hover:underline font-mono">tailieu.beekip.vn</a>
+            </div>
+
+            <div class="mt-3 p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 flex items-center justify-between text-xs">
+              <span class="text-emerald-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-circle-check text-emerald-400"></i> Tỷ lệ xuất bản:
+              </span>
+              <span id="metric-publish-rate" class="font-mono font-bold text-emerald-300 text-sm">100%</span>
+            </div>
+          </div>
+
+          <button onclick="applyPeriodToDocumentsTable()" class="w-full mt-4 py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 text-emerald-200 border border-emerald-500/40 text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-md shadow-emerald-900/30">
+            <i class="fa-solid fa-arrow-down-short-wide text-emerald-400"></i>
+            <span>Lọc Bảng Tài Liệu Phía Dưới Theo Chu Kỳ Này</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Supplementary Infrastructure Indicators -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
           <span>LƯU TRỮ R2 CLOUD</span>
           <i class="fa-solid fa-hard-drive text-amber-400"></i>
         </div>
-        <div id="stat-r2-files" class="text-2xl font-bold text-amber-400 tracking-tight">--</div>
-        <div class="text-[11px] text-slate-400 mt-1">PDF &amp; Word nguyên bản</div>
+        <div id="stat-r2-files" class="text-xl font-bold text-amber-400 tracking-tight">--</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">PDF &amp; Word CDN</div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
           <span>HÀNG ĐỢI CHỜ XỬ LÝ</span>
           <i class="fa-solid fa-hourglass-half text-violet-400"></i>
         </div>
-        <div id="stat-queue-pending" class="text-2xl font-bold text-violet-400 tracking-tight">--</div>
-        <div class="text-[11px] text-slate-400 mt-1">Đang chờ xử lý tuần tự</div>
+        <div id="stat-queue-pending" class="text-xl font-bold text-violet-400 tracking-tight">--</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">Hàng đợi D1 queue</div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
           <span>ĐẠT QA GATE 10/10</span>
           <i class="fa-solid fa-shield-check text-cyan-400"></i>
         </div>
-        <div class="text-2xl font-bold text-cyan-400 tracking-tight">100%</div>
-        <div class="text-[11px] text-slate-400 mt-1">Chuẩn BEEKIP-STD</div>
+        <div class="text-xl font-bold text-cyan-400 tracking-tight">100%</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">Chuẩn BEEKIP-STD</div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
           <span>CỔNG HỌC LIỆU</span>
           <i class="fa-solid fa-network-wired text-indigo-400"></i>
         </div>
-        <div id="stat-sources" class="text-2xl font-bold text-indigo-400 tracking-tight">--</div>
-        <div class="text-[11px] text-slate-400 mt-1">Toanmath, TVVL,...</div>
+        <div id="stat-sources" class="text-xl font-bold text-indigo-400 tracking-tight">--</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">16 cổng đồng bộ</div>
       </div>
 
-      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+      <div class="bg-slate-900 border border-slate-800/80 rounded-2xl p-3.5 shadow-sm relative overflow-hidden">
         <div class="flex items-center justify-between text-slate-400 text-xs font-medium mb-1">
           <span>CHU KỲ CRON 24/7</span>
           <i class="fa-solid fa-clock text-teal-400"></i>
         </div>
-        <div class="text-xl font-bold text-teal-400 tracking-tight">Mỗi 4 Giờ</div>
-        <div class="text-[11px] text-slate-400 mt-1">Tự động 100% không tắt</div>
+        <div class="text-base font-bold text-teal-400 tracking-tight mt-0.5">Mỗi 4 Giờ</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">Cloudflare Global Edge</div>
       </div>
     </div>
 
@@ -266,6 +433,11 @@ export function renderDashboardHtml(basePath: string = "/hubag/crawl", username:
               <i class="fa-solid fa-book-open text-indigo-400"></i> Danh Sách Tài Liệu Đã Thu Thập &amp; Xuất Bản
             </h3>
             <p class="text-xs text-slate-400 mt-0.5">Dữ liệu thực tế từ Cloudflare D1 (18,833+ tài liệu) &bull; Tệp PDF lưu trữ trên Cloudflare R2 CDN</p>
+            <div id="docFilterPeriodBadge" class="hidden inline-flex items-center gap-1.5 px-2.5 py-0.5 mt-1.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-mono">
+              <i class="fa-solid fa-filter text-[10px]"></i>
+              <span id="docFilterPeriodText">Chu kỳ: Tất Cả</span>
+              <button onclick="resetDocPeriodFilter()" class="hover:text-rose-400 ml-1" title="Hủy lọc"><i class="fa-solid fa-xmark text-[10px]"></i></button>
+            </div>
           </div>
 
           <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -510,6 +682,111 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
     </div>
   </div>
 
+  <!-- Modal Chi Tiết Cổng Nguồn & Danh Sách Bài Viết -->
+  <div id="sourcesDetailModal" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-5xl w-full max-h-[92vh] overflow-hidden flex flex-col shadow-2xl">
+      <!-- Modal Header -->
+      <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/60">
+        <div class="flex items-center gap-3">
+          <span class="w-8 h-8 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
+            <i class="fa-solid fa-layer-group"></i>
+          </span>
+          <div>
+            <h3 class="font-bold text-base text-slate-100 flex items-center gap-2">
+              Báo Cáo Chi Tiết Cổng Nguồn &amp; Bài Viết Crawl Được
+            </h3>
+            <p class="text-xs text-slate-400">
+              Chu kỳ thống kê: <span id="modalPeriodBadge" class="text-indigo-400 font-mono font-semibold">Tuần (7 Ngày Qua)</span> &bull; 
+              Tổng phát hiện: <span id="modalTotalCrawledCount" class="text-emerald-400 font-mono font-bold">0</span> bài
+            </p>
+          </div>
+        </div>
+        <button onclick="closeSourcesModal()" class="w-8 h-8 rounded-full hover:bg-slate-800 flex items-center justify-center text-slate-400 hover:text-slate-200 transition">
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body (Two-column layout) -->
+      <div class="flex-1 overflow-hidden flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800">
+        <!-- Left: Sources List -->
+        <div class="w-full md:w-80 flex flex-col bg-slate-950/40 p-4 space-y-3 shrink-0 overflow-y-auto">
+          <div class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+            <span>Danh Sách Cổng Nguồn</span>
+            <span id="modalSourcesCountBadge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono">0 cổng</span>
+          </div>
+
+          <!-- All Sources filter button -->
+          <button onclick="selectModalSource('')" id="btn-source-filter-all" class="w-full p-2.5 rounded-xl border text-left text-xs transition flex items-center justify-between bg-indigo-600/20 border-indigo-500/40 text-indigo-300">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-globe text-indigo-400"></i>
+              <span class="font-semibold">Tất Cả Các Nguồn</span>
+            </div>
+            <span id="badge-source-all-count" class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono font-bold text-[11px]">0</span>
+          </button>
+
+          <!-- Dynamic Sources List -->
+          <div id="modalSourcesList" class="space-y-1.5 overflow-y-auto flex-1">
+            <!-- Dynamic items -->
+          </div>
+        </div>
+
+        <!-- Right: Crawled Articles List -->
+        <div class="flex-1 flex flex-col p-5 bg-slate-900 overflow-hidden">
+          <!-- Filter & Search Bar in Modal -->
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div class="flex items-center gap-2">
+              <span id="currentSelectedSourceTitle" class="text-xs font-bold text-slate-200">Tất cả bài viết</span>
+              <span id="articlesCountBadge" class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-mono">0 bài</span>
+            </div>
+
+            <div class="relative w-64">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+              <input 
+                type="text" 
+                id="modalArticleSearchInput" 
+                oninput="debounceModalArticleSearch()" 
+                placeholder="Tìm tiêu đề hoặc URL..." 
+                class="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+
+          <!-- Articles Table Container -->
+          <div class="flex-1 overflow-y-auto border border-slate-800/80 rounded-2xl bg-slate-950/50">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-slate-800/80 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800 sticky top-0 backdrop-blur-sm z-10">
+                <tr>
+                  <th class="px-4 py-3">Tiêu Đề Bài Viết</th>
+                  <th class="px-4 py-3">Cổng Nguồn</th>
+                  <th class="px-4 py-3">Trạng Thái Xử Lý</th>
+                  <th class="px-4 py-3 whitespace-nowrap">Thời Gian Crawl</th>
+                  <th class="px-4 py-3 text-right">Bài Gốc</th>
+                </tr>
+              </thead>
+              <tbody id="modalArticlesTableBody" class="divide-y divide-slate-800/60 font-sans">
+                <tr>
+                  <td colspan="5" class="px-4 py-8 text-center text-slate-500">
+                    <i class="fa-solid fa-circle-notch fa-spin mr-2 text-indigo-500"></i> Đang tải danh sách bài viết...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="px-6 py-3.5 bg-slate-950 border-t border-slate-800 flex justify-between items-center text-xs text-slate-400">
+        <div>
+          <i class="fa-solid fa-info-circle text-indigo-400 mr-1"></i> Dữ liệu đồng bộ trực tiếp từ Cloudflare D1 queue &bull; Cập nhật liên tục 24/7
+        </div>
+        <button onclick="closeSourcesModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-semibold transition">
+          Đóng
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div id="toast" class="hidden fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl bg-emerald-600 text-white text-xs font-semibold shadow-2xl flex items-center gap-2">
     <i class="fa-solid fa-circle-check"></i>
@@ -523,6 +800,244 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
     let pageSize = 50;
     let searchTimeout = null;
     let cachedStats = null;
+    let currentAnalyticsPeriod = 'week';
+    let currentDocPeriod = 'all';
+    let activeModalSourceId = '';
+    let cachedAnalytics = null;
+    let modalSearchTimeout = null;
+
+    // Period selector
+    async function setAnalyticsPeriod(period) {
+      currentAnalyticsPeriod = period;
+      
+      // Update buttons style
+      ['day', 'week', 'month', 'quarter', 'year', 'all'].forEach(p => {
+        const btn = document.getElementById('btn-period-' + p);
+        if (!btn) return;
+        if (p === period) {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold transition bg-indigo-600 text-white shadow-md shadow-indigo-600/30';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold transition text-slate-400 hover:text-slate-200';
+        }
+      });
+
+      await loadAnalytics(period);
+    }
+
+    // Load Analytics API
+    async function loadAnalytics(period = 'week') {
+      try {
+        const res = await fetch(BASE_PATH + '/api/analytics?period=' + period);
+        if (res.status === 401) { window.location.reload(); return; }
+        const data = await res.json();
+        cachedAnalytics = data;
+
+        // 1. Period labels
+        ['metric-period-badge-1', 'metric-period-badge-2', 'metric-period-badge-3'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.innerText = data.period_label;
+        });
+
+        // 2. Block 1: Crawled
+        document.getElementById('metric-crawled-total').innerText = Number(data.crawled.total).toLocaleString('vi-VN');
+        document.getElementById('metric-sources-count').innerText = data.crawled.sources_count;
+
+        // Top sources preview badges
+        const topSourcesEl = document.getElementById('metric-top-sources');
+        if (topSourcesEl && data.crawled.sources_breakdown) {
+          topSourcesEl.innerHTML = data.crawled.sources_breakdown.slice(0, 4).map(s => {
+            return '<button onclick="openSourcesModal(\'' + escapeHtml(s.source_id) + '\')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-indigo-500/40 text-slate-300 text-[11px] flex items-center gap-1.5 transition" title="Xem bài viết từ ' + escapeHtml(s.name) + '">' +
+              '<span class="font-medium text-slate-200">' + escapeHtml(s.name) + ':</span>' +
+              '<span class="font-mono text-indigo-400 font-bold">' + s.count + '</span>' +
+            '</button>';
+          }).join('');
+        }
+
+        // 3. Block 2: Processing (3 sub-metrics)
+        const instant = data.processing.instant_selected || 0;
+        const needs = data.processing.needs_processing || 0;
+        const done = data.processing.processed_done || 0;
+        document.getElementById('metric-instant-selected').innerText = Number(instant).toLocaleString('vi-VN');
+        document.getElementById('metric-needs-processing').innerText = Number(needs).toLocaleString('vi-VN');
+        document.getElementById('metric-processed-done').innerText = Number(done).toLocaleString('vi-VN');
+
+        const totalPipe = instant + needs + done || 1;
+        document.getElementById('bar-instant').style.width = Math.max(5, (instant / totalPipe * 100)) + '%';
+        document.getElementById('bar-needs').style.width = Math.max(5, (needs / totalPipe * 100)) + '%';
+        document.getElementById('bar-done').style.width = Math.max(5, (done / totalPipe * 100)) + '%';
+
+        // 4. Block 3: Published
+        document.getElementById('metric-published-total').innerText = Number(data.published.total_published).toLocaleString('vi-VN');
+        document.getElementById('metric-publish-rate').innerText = (data.published.publish_rate || 100) + '%';
+
+      } catch (err) {
+        console.error('Lỗi tải analytics:', err);
+      }
+    }
+
+    // Modal Sources Breakdown
+    function openSourcesModal(sourceId = '') {
+      activeModalSourceId = sourceId;
+      document.getElementById('sourcesDetailModal').classList.remove('hidden');
+
+      if (cachedAnalytics) {
+        document.getElementById('modalPeriodBadge').innerText = cachedAnalytics.period_label;
+        document.getElementById('modalTotalCrawledCount').innerText = Number(cachedAnalytics.crawled.total).toLocaleString('vi-VN');
+        document.getElementById('badge-source-all-count').innerText = cachedAnalytics.crawled.total;
+        document.getElementById('modalSourcesCountBadge').innerText = cachedAnalytics.crawled.sources_count + ' cổng';
+
+        renderModalSourcesList(cachedAnalytics.crawled.sources_breakdown || []);
+      }
+
+      loadCrawledArticles(sourceId);
+    }
+
+    function closeSourcesModal() {
+      document.getElementById('sourcesDetailModal').classList.add('hidden');
+    }
+
+    function renderModalSourcesList(sources) {
+      const container = document.getElementById('modalSourcesList');
+      if (!container) return;
+
+      container.innerHTML = sources.map(s => {
+        const isActive = (s.source_id === activeModalSourceId);
+        const activeClass = isActive 
+          ? 'bg-indigo-600/20 border-indigo-500/50 text-indigo-200' 
+          : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700';
+
+        return '<button onclick="selectModalSource(\'' + escapeHtml(s.source_id) + '\')" class="w-full p-2.5 rounded-xl border text-left transition ' + activeClass + '">' +
+          '<div class="flex items-center justify-between mb-1">' +
+            '<div class="font-semibold text-xs truncate pr-2">' + escapeHtml(s.name) + '</div>' +
+            '<span class="font-mono font-bold text-xs text-indigo-400">' + s.count + '</span>' +
+          '</div>' +
+          '<div class="flex items-center justify-between text-[10px] text-slate-400 font-mono">' +
+            '<span class="truncate">' + escapeHtml(s.domain) + '</span>' +
+            '<span>' + s.percentage + '%</span>' +
+          '</div>' +
+          '<div class="h-1 w-full bg-slate-950 rounded-full mt-1.5 overflow-hidden">' +
+            '<div class="h-full bg-indigo-500 rounded-full" style="width: ' + Math.min(100, Math.max(5, s.percentage)) + '%"></div>' +
+          '</div>' +
+        '</button>';
+      }).join('');
+    }
+
+    function selectModalSource(sourceId) {
+      activeModalSourceId = sourceId;
+      if (cachedAnalytics) {
+        renderModalSourcesList(cachedAnalytics.crawled.sources_breakdown || []);
+      }
+      const allBtn = document.getElementById('btn-source-filter-all');
+      if (allBtn) {
+        if (!sourceId) {
+          allBtn.className = 'w-full p-2.5 rounded-xl border text-left text-xs transition flex items-center justify-between bg-indigo-600/20 border-indigo-500/40 text-indigo-300';
+        } else {
+          allBtn.className = 'w-full p-2.5 rounded-xl border text-left text-xs transition flex items-center justify-between bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800/60';
+        }
+      }
+      loadCrawledArticles(sourceId);
+    }
+
+    function debounceModalArticleSearch() {
+      clearTimeout(modalSearchTimeout);
+      modalSearchTimeout = setTimeout(() => {
+        loadCrawledArticles(activeModalSourceId);
+      }, 350);
+    }
+
+    async function loadCrawledArticles(sourceId = '') {
+      const tbody = document.getElementById('modalArticlesTableBody');
+      const search = (document.getElementById('modalArticleSearchInput').value || '').trim();
+
+      tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500"><i class="fa-solid fa-circle-notch fa-spin mr-2 text-indigo-500"></i>Đang tải dữ liệu bài viết...</td></tr>';
+
+      try {
+        const url = BASE_PATH + '/api/crawled-articles?source_id=' + encodeURIComponent(sourceId) + '&period=' + currentAnalyticsPeriod + '&q=' + encodeURIComponent(search) + '&limit=50';
+        const res = await fetch(url);
+        if (res.status === 401) { window.location.reload(); return; }
+        const data = await res.json();
+        const articles = data.articles || [];
+
+        document.getElementById('articlesCountBadge').innerText = articles.length + ' bài';
+        const sourceTitle = sourceId && cachedAnalytics 
+          ? (cachedAnalytics.crawled.sources_breakdown.find(s => s.source_id === sourceId)?.name || sourceId) 
+          : 'Tất cả các nguồn';
+        document.getElementById('currentSelectedSourceTitle').innerText = 'Bài viết từ: ' + sourceTitle;
+
+        if (articles.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-slate-400">Không tìm thấy bài viết nào trong chu kỳ này.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = articles.map(art => {
+          let statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">Khác</span>';
+          if (art.status === 'COMPLETED') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Đạt Chuẩn QA</span>';
+          } else if (art.status === 'PENDING') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">Chờ Xử Lý</span>';
+          } else if (art.status === 'NEEDS_OFFICE_CONVERTER') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">Cần Convert Docx</span>';
+          } else if (art.status === 'SKIPPED_OLD') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-500">Bài Cũ &lt; 2023</span>';
+          } else if (art.status === 'QA_REJECTED') {
+            statusBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-rose-500/10 text-rose-300 border border-rose-500/20">Cần Khử Trùng PII</span>';
+          }
+
+          const timeHtml = formatExactTime(art.created_at);
+
+          return '<tr class="hover:bg-slate-800/30 transition">' +
+            '<td class="px-4 py-3 font-sans max-w-xs">' +
+              '<div class="font-semibold text-slate-200 text-xs truncate" title="' + escapeHtml(art.title) + '">' + escapeHtml(art.title) + '</div>' +
+              '<div class="text-[11px] text-slate-500 font-mono truncate mt-0.5" title="' + escapeHtml(art.url) + '">' + escapeHtml(art.url) + '</div>' +
+            '</td>' +
+            '<td class="px-4 py-3 whitespace-nowrap">' +
+              '<span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px]">' + escapeHtml(art.source_name) + '</span>' +
+            '</td>' +
+            '<td class="px-4 py-3 whitespace-nowrap">' + statusBadge + '</td>' +
+            '<td class="px-4 py-3 whitespace-nowrap">' + timeHtml + '</td>' +
+            '<td class="px-4 py-3 text-right whitespace-nowrap">' +
+              '<a href="' + escapeHtml(art.url) + '" target="_blank" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 rounded text-xs transition inline-flex items-center gap-1" title="Mở trang bài gốc">' +
+                '<i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Xem Gốc' +
+              '</a>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-8 text-center text-rose-400">Lỗi tải bài viết: ' + err + '</td></tr>';
+      }
+    }
+
+    // Apply period to main documents table
+    function applyPeriodToDocumentsTable() {
+      currentDocPeriod = currentAnalyticsPeriod;
+      switchTab('documents');
+      
+      const badge = document.getElementById('docFilterPeriodBadge');
+      const text = document.getElementById('docFilterPeriodText');
+      if (badge && text && cachedAnalytics) {
+        text.innerText = 'Chu kỳ: ' + cachedAnalytics.period_label;
+        badge.classList.remove('hidden');
+      }
+
+      currentPage = 1;
+      loadDocuments();
+
+      const tableEl = document.getElementById('panel-documents');
+      if (tableEl) {
+        tableEl.scrollIntoView({ behavior: 'smooth' });
+      }
+      showToast('Đã lọc bảng tài liệu theo chu kỳ: ' + (cachedAnalytics ? cachedAnalytics.period_label : currentAnalyticsPeriod));
+    }
+
+    function resetDocPeriodFilter() {
+      currentDocPeriod = 'all';
+      const badge = document.getElementById('docFilterPeriodBadge');
+      if (badge) badge.classList.add('hidden');
+      currentPage = 1;
+      loadDocuments();
+      showToast('Đã bỏ lọc chu kỳ, hiển thị toàn bộ tài liệu!');
+    }
 
     // Tab switcher
     function switchTab(tabId) {
@@ -661,7 +1176,7 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
       tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center text-slate-500"><i class="fa-solid fa-circle-notch fa-spin text-indigo-500 mr-2"></i>Đang tải dữ liệu...</td></tr>';
 
       try {
-        const url = BASE_PATH + '/api/documents?page=' + currentPage + '&limit=' + pageSize + '&q=' + encodeURIComponent(search);
+        const url = BASE_PATH + '/api/documents?page=' + currentPage + '&limit=' + pageSize + '&q=' + encodeURIComponent(search) + '&period=' + currentDocPeriod;
         const res = await fetch(url);
         if (res.status === 401) {
           window.location.reload();
@@ -858,7 +1373,7 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
     }
 
     async function loadAllData() {
-      await Promise.all([loadStats(), loadDocuments(), loadQueue()]);
+      await Promise.all([loadStats(), loadAnalytics(currentAnalyticsPeriod), loadDocuments(), loadQueue()]);
     }
 
     window.addEventListener('DOMContentLoaded', loadAllData);
