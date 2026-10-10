@@ -118,11 +118,11 @@ def main():
             raise RuntimeError('Set BEEKIP_CLOUD_ENABLED=true after verifying billing limits and preflight')
         from cloudflare.cloud_ledger import CloudLedger
         from cloudflare.r2_uploader import CloudflareR2Uploader
-        from services.cloud_pipeline import CloudPipeline
+        from services.multi_agent_orchestrator import MultiAgentPipelineOrchestrator
         from services.omni_scheduler import OmniSchedulerDaemon
         ledger = CloudLedger(d1)
         ledger.initialize()
-        pipeline = CloudPipeline(ledger, CloudflareR2Uploader(), d1)
+        pipeline = MultiAgentPipelineOrchestrator(ledger, CloudflareR2Uploader(), d1)
         daemon = OmniSchedulerDaemon(db=ledger, pipeline=pipeline)
         try:
             result = daemon.run_single_cycle(
