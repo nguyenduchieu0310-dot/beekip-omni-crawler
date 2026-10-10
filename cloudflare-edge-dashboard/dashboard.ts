@@ -680,15 +680,17 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
           return;
         }
 
-        tbody.innerHTML = docs.map(doc => {
+        window.currentDocs = docs;
+
+        tbody.innerHTML = docs.map((doc, idx) => {
           let tags = [];
           try { tags = JSON.parse(doc.audience_tags_json || '[]'); } catch(e){}
-          const tagBadges = tags.slice(0, 3).map(t => '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] mr-1">' + t + '</span>').join('');
+          const tagBadges = tags.slice(0, 3).map(t => '<span class="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 text-[10px] mr-1">' + escapeHtml(t) + '</span>').join('');
 
           const sizeKb = doc.size_bytes ? (doc.size_bytes / 1024).toFixed(0) + ' KB' : 'N/A';
           const fileKey = doc.source_object_key || '';
           const directFileUrl = fileKey ? BASE_PATH + '/files/' + encodeURIComponent(fileKey) : null;
-          const beekipUrl = 'https://tailieu.beekip.vn/api/documents/' + doc.slug + '/download';
+          const beekipUrl = 'https://tailieu.beekip.vn/api/documents/' + encodeURIComponent(doc.slug) + '/download';
           const timeCol = formatExactTime(doc.created_at);
 
           return '<tr class="hover:bg-slate-800/30 transition">' +
@@ -707,13 +709,20 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
               '<div class="flex items-center justify-end gap-1.5 font-sans">' +
                 (directFileUrl ? '<a href="' + directFileUrl + '" target="_blank" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs transition" title="Tải từ Cloudflare R2"><i class="fa-solid fa-cloud-arrow-down"></i> R2</a>' : '') +
                 '<a href="' + beekipUrl + '" target="_blank" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition" title="Tải từ Beekip"><i class="fa-solid fa-download"></i></a>' +
-                '<button onclick=\'viewDocDetail(' + JSON.stringify(doc).replace(/'/g, "&apos;") + ')\' class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition"><i class="fa-solid fa-circle-info"></i></button>' +
+                '<button onclick="viewDocDetailByIndex(' + idx + ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition" title="Xem chi tiết"><i class="fa-solid fa-circle-info"></i></button>' +
               '</div>' +
             '</td>' +
           '</tr>';
         }).join('');
       } catch (err) {
         tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-8 text-center text-rose-400">Lỗi kết nối D1: ' + err + '</td></tr>';
+      }
+    }
+
+    // View Modal By Index
+    function viewDocDetailByIndex(idx) {
+      if (window.currentDocs && window.currentDocs[idx]) {
+        viewDocDetail(window.currentDocs[idx]);
       }
     }
 
