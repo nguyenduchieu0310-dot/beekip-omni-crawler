@@ -1240,12 +1240,23 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
           const fileKey = doc.source_object_key || '';
           const directFileUrl = fileKey ? BASE_PATH + '/files/' + encodeURIComponent(fileKey) : null;
           const beekipUrl = 'https://tailieu.beekip.vn/api/documents/' + encodeURIComponent(doc.slug) + '/download';
+          const beekipLiveUrl = 'https://tailieu.beekip.vn/tai-lieu/' + encodeURIComponent(doc.slug);
           const timeCol = formatExactTime(doc.created_at);
 
           return '<tr class="hover:bg-slate-800/30 transition">' +
             '<td class="px-5 py-3 font-sans">' +
-              '<div class="font-semibold text-slate-200 text-xs">' + escapeHtml(doc.title) + '</div>' +
-              '<div class="text-[11px] text-slate-500 font-mono mt-0.5">slug: ' + escapeHtml(doc.slug) + '</div>' +
+              '<div class="group">' +
+                '<a href="' + beekipLiveUrl + '" target="_blank" rel="noopener noreferrer" class="font-semibold text-slate-100 group-hover:text-emerald-400 hover:underline text-xs inline-flex items-center gap-1.5 transition" title="Nhấn để mở xem trực tiếp bài viết trên Beekip.vn">' +
+                  escapeHtml(doc.title) +
+                  ' <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-emerald-400 opacity-70 group-hover:opacity-100"></i>' +
+                '</a>' +
+              '</div>' +
+              '<div class="text-[11px] text-slate-500 font-mono mt-1 flex items-center gap-2 flex-wrap">' +
+                '<span>slug: ' + escapeHtml(doc.slug) + '</span>' +
+                '<a href="' + beekipLiveUrl + '" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 hover:underline text-[10px] flex items-center gap-1 font-sans bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">' +
+                  '<i class="fa-solid fa-globe text-[9px]"></i> Xem trên Beekip' +
+                '</a>' +
+              '</div>' +
             '</td>' +
             '<td class="px-5 py-3">' + tagBadges + '</td>' +
             '<td class="px-5 py-3 text-slate-400 font-mono"><span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-300 border border-rose-500/20 uppercase text-[10px]">PDF</span></td>' +
@@ -1256,6 +1267,9 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
             '</td>' +
             '<td class="px-5 py-3 text-right">' +
               '<div class="flex items-center justify-end gap-1.5 font-sans">' +
+                '<a href="' + beekipLiveUrl + '" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/35 text-emerald-300 border border-emerald-500/40 rounded text-xs transition font-semibold flex items-center gap-1.5 shadow-sm" title="Mở thẳng trang bài viết trên Beekip.vn để kiểm tra đối chiếu trực tiếp">' +
+                  '<i class="fa-solid fa-globe text-[11px]"></i> Trang Beekip' +
+                '</a>' +
                 (directFileUrl ? '<a href="' + directFileUrl + '" target="_blank" class="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded text-xs transition" title="Tải từ Cloudflare R2"><i class="fa-solid fa-cloud-arrow-down"></i> R2</a>' : '') +
                 '<a href="' + beekipUrl + '" target="_blank" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition" title="Tải từ Beekip"><i class="fa-solid fa-download"></i></a>' +
                 '<button onclick="viewDocDetailByIndex(' + idx + ')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs transition" title="Xem chi tiết"><i class="fa-solid fa-circle-info"></i></button>' +
@@ -1281,10 +1295,12 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
       let tags = [];
       try { tags = JSON.parse(doc.audience_tags_json || '[]'); } catch(e){}
 
+      const beekipLiveUrl = 'https://tailieu.beekip.vn/tai-lieu/' + encodeURIComponent(doc.slug);
       const body = document.getElementById('modalBody');
       body.innerHTML = 
         '<div><span class="text-slate-500">ID:</span> <span class="text-indigo-300">' + doc.id + '</span></div>' +
         '<div><span class="text-slate-500">Mã Tài Liệu:</span> <span class="text-slate-200">' + doc.document_code + '</span></div>' +
+        '<div><span class="text-slate-500">Trang Web Beekip:</span> <a href="' + beekipLiveUrl + '" target="_blank" rel="noopener noreferrer" class="text-emerald-400 hover:text-emerald-300 hover:underline break-all font-mono text-xs inline-flex items-center gap-1 ml-1"><i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> ' + beekipLiveUrl + '</a></div>' +
         '<div><span class="text-slate-500">Tác giả:</span> <span class="text-slate-200">' + escapeHtml(doc.author_name) + '</span></div>' +
         '<div><span class="text-slate-500">R2 Object Key:</span> <span class="text-amber-300 break-all">' + escapeHtml(doc.source_object_key) + '</span></div>' +
         '<div><span class="text-slate-500">Tên Tệp Gốc:</span> <span class="text-slate-200 break-all">' + escapeHtml(doc.original_filename) + '</span></div>' +
@@ -1300,10 +1316,14 @@ Nhiệm vụ của bạn là tiếp nhận tệp học liệu (PDF / Word / Powe
         '</span></div>';
 
       const fileKey = doc.source_object_key || '';
-      const downloadBtn = fileKey 
-        ? '<a href="' + BASE_PATH + '/files/' + encodeURIComponent(fileKey) + '" target="_blank" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-teal-600 text-white rounded-xl font-bold text-xs flex items-center gap-1.5"><i class="fa-solid fa-cloud-arrow-down"></i> Tải Tệp Từ Cloudflare R2</a>' 
-        : '';
-      document.getElementById('modalDownloadContainer').innerHTML = downloadBtn;
+      const actionButtons = 
+        '<div class="flex items-center gap-2 flex-wrap">' +
+          '<a href="' + beekipLiveUrl + '" target="_blank" rel="noopener noreferrer" class="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition">' +
+            '<i class="fa-solid fa-globe"></i> Mở Trang Beekip.vn' +
+          '</a>' +
+          (fileKey ? '<a href="' + BASE_PATH + '/files/' + encodeURIComponent(fileKey) + '" target="_blank" class="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/40 rounded-xl font-bold text-xs flex items-center gap-1.5 transition"><i class="fa-solid fa-cloud-arrow-down"></i> Tải Tệp R2</a>' : '') +
+        '</div>';
+      document.getElementById('modalDownloadContainer').innerHTML = actionButtons;
 
       document.getElementById('detailModal').classList.remove('hidden');
     }
