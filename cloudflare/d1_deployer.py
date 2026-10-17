@@ -4,6 +4,7 @@ import time
 import uuid
 from typing import Any, Dict, List, Optional
 import requests
+from cloudflare.document_ingest import assert_no_document_sql, document_payload, ingest_document, ingest_config, source_provenance
 
 from core.config import (
     CLOUDFLARE_ACCOUNT_ID,
@@ -18,7 +19,7 @@ DEFAULT_ADMIN_ID = "0a06cb29-9889-4419-9d86-cb09b07df18e"
 
 class CloudflareD1Deployer:
     """
-    Inserts processed document metadata directly into Cloudflare D1 documents table.
+    Publishes documents through LMS ingest; direct D1 remains for crawler ledger operations.
     Fully compatible with Beekip LMS production schema.
     """
 
@@ -39,6 +40,7 @@ class CloudflareD1Deployer:
 
     def execute_raw_sql(self, sql: str, params: Optional[List[Any]] = None) -> Dict[str, Any]:
         """Execute parameterized SQL on D1."""
+        assert_no_document_sql(sql)
         if not self.api_token:
             raise RuntimeError("Cloudflare API token not found for D1 execution.")
 
@@ -83,6 +85,10 @@ class CloudflareD1Deployer:
                 raise RuntimeError("Could not verify D1 documents schema") from None
         return self._table_columns
 
+    def ensure_document_ingest(self):
+        """Fail before asset uploads if the new publication boundary is not configured."""
+        return ingest_config()
+
     def insert_document(
         self,
         meta: EnrichedMetadata,
@@ -99,99 +105,44 @@ class CloudflareD1Deployer:
         Insert document record into live Beekip D1 database.
         Returns the generated document UUID.
         """
-        cols = self._get_columns()
         doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_url))
-        now_ms = int(time.time() * 1000)
-
-        # Check if table uses production Beekip LMS schema
-        if "audience_tags_json" in cols:
-            tags = [meta.subject, meta.grade, meta.academic_year, meta.curriculum, meta.document_type]
-            if meta.geo_province:
-                tags.append(meta.geo_province)
-            if meta.geo_school:
-                tags.append(meta.geo_school)
-
-            audience_tags_json = json.dumps(tags, ensure_ascii=False)
-            from urllib.parse import urlparse
-            source_object_key = storage_key or urlparse(file_url).path.lstrip('/')
-            orig_filename = f"{meta.slug}.pdf"
-            preview_json = json.dumps(list(range(1, min(page_count, 5) + 1)))
-
-            sql = """
-            INSERT INTO documents (
-                id, document_code, slug, title, author_name, audience_tags_json,
-                short_description, description, source_object_key, original_filename,
-                mime_type, size_bytes, page_count, preview_pages_json, watermark_enabled,
-                download_limit, is_published, order_index, created_by, updated_by,
-                created_at, updated_at, cover_url
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO NOTHING;
-            """
-            params = [
-                doc_id,
-                'crawl-' + doc_id,
-                meta.slug,
-                meta.title[:200],
-                author_name or meta.geo_school or "Chưa xác minh tác giả",
-                audience_tags_json,
-                meta.description[:500],
-                meta.description,
-                source_object_key,
-                orig_filename,
-                mime_type,
-                file_size_bytes,
-                page_count,
-                preview_json,
-                1,
-                3,
-                1,
-                99999,
-                DEFAULT_ADMIN_ID,
-                DEFAULT_ADMIN_ID,
-                now_ms,
-                now_ms,
-                cover_url
-            ]
-        else:
-            # Fallback to Spec Section 7.2 schema
-            sql = """
-            INSERT INTO documents (
-                id, title, slug, description, subject, grade, academic_year,
-                geo_province, geo_school, curriculum, document_type,
-                file_url, mime_type, file_size, source_url, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-            ON CONFLICT(id) DO NOTHING;
-            """
-            params = [
-                doc_id,
-                meta.title,
-                meta.slug,
-                meta.description,
-                meta.subject,
-                meta.grade,
-                meta.academic_year,
-                meta.geo_province,
-                meta.geo_school,
-                meta.curriculum,
-                meta.document_type,
-                file_url,
-                mime_type,
-                file_size_bytes,
-                source_url
-            ]
-
-        self.execute_raw_sql(sql, params)
-        logger.info("Successfully deployed document to D1: [%s] (%s)", doc_id, meta.title[:50])
+        from urllib.parse import urlparse
+        source_object_key = storage_key or urlparse(file_url).path.lstrip('/')
+        tags = [meta.subject, meta.grade, meta.academic_year, meta.curriculum, meta.document_type]
+        tags.extend(value for value in [meta.geo_province, meta.geo_school] if value)
+        description_format = getattr(meta, "description_format", "plain")
+        provenance, review = source_provenance(source_url, meta.title, meta.description)
+        document = {
+            "id": doc_id, "code": "crawl-" + doc_id, "slug": meta.slug, "title": meta.title,
+            "authorName": author_name or meta.geo_school or "Chưa xác minh tác giả",
+            "audienceTags": tags, "shortDescription": getattr(meta, "short_description", meta.description[:500]),
+            "description": meta.description, "descriptionFormat": description_format,
+            "sourceObjectKey": source_object_key, "originalFilename": meta.slug + ".pdf", "mimeType": mime_type,
+            "sizeBytes": file_size_bytes, "pageCount": page_count,
+            "previewPages": list(range(1, min(page_count, 5) + 1)), "watermarkEnabled": True,
+            "downloadLimit": 3, "isPublished": True, "orderIndex": 99999, "coverUrl": cover_url or None,
+        }
+        ingest_document(document_payload(document, provenance, review))
+        logger.info("Document acknowledged by the create-only LMS ingest endpoint: %s", doc_id)
         return doc_id
 
-    def check_document_exists(self, slug_or_url: str) -> bool:
-        """Check if document already exists in D1."""
-        sql = "SELECT count(1) as count FROM documents WHERE slug = ?;"
-        try:
-            res = self.execute_raw_sql(sql, [slug_or_url])
-            rows = res['result'][0]['results']
-            if rows and rows[0]['count'] > 0:
-                return True
-        except Exception:
-            raise RuntimeError('Could not check D1 document existence') from None
-        return False
+    def find_existing_document(self, source_url: str, slug: str):
+        """Read identity before any asset write, including retries with a changed title/slug."""
+        doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_url))
+        prefix = "documents/v1/" + doc_id + "/"
+        result = self.execute_raw_sql(
+            "SELECT id,slug,source_object_key FROM documents WHERE id=? OR source_object_key LIKE ? OR slug=? LIMIT 2",
+            [doc_id, prefix + "%", slug])
+        rows = result["result"][0]["results"]
+        matches = [row for row in rows if row["id"] == doc_id or str(row.get("source_object_key", "")).startswith(prefix)]
+        if len(matches) == 1:
+            return matches[0]
+        if matches or rows:
+            raise RuntimeError("Existing document identity is ambiguous; manual review is required")
+        return None
+
+    def check_document_exists(self, slug_or_url: str, source_url: Optional[str] = None) -> bool:
+        if source_url:
+            return self.find_existing_document(source_url, slug_or_url) is not None
+        result = self.execute_raw_sql("SELECT id FROM documents WHERE slug=? LIMIT 1", [slug_or_url])
+        return bool(result["result"][0]["results"])

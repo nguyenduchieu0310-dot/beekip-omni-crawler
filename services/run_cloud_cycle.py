@@ -111,6 +111,9 @@ def main():
     if args.local_read_only and args.mode != 'preflight':
         parser.error('--local-read-only is restricted to preflight')
     try:
+        if args.mode == "ingest":
+            from cloudflare.document_ingest import ingest_config
+            ingest_config()
         d1 = preflight(args.local_read_only)
         if args.mode == 'preflight':
             return 0

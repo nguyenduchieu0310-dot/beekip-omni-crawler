@@ -178,50 +178,42 @@ def extract_geo_and_metadata(title: str, categories: Optional[List[str]] = None)
         if m_phong:
             authority = m_phong.group(1).strip().title()
 
-    # 4. Nhận diện Tỉnh / Thành phố (GEO Province & Region)
-    province = ""
-    region = ""
-
-    # Nếu có trường chuyên gắn với tỉnh
-    if school and school in SPECIALIZED_SCHOOLS:
-        province = SPECIALIZED_SCHOOLS[school]
-        region = PROVINCES_DICT[province]["region"]
-
-    # Nếu có Sở GD&ĐT gắn với tỉnh
-    if not province and authority:
-        for prov_name, prov_info in PROVINCES_DICT.items():
-            for alias in prov_info["aliases"]:
-                if alias in authority.lower():
-                    province = prov_name
-                    region = prov_info["region"]
+    # Full location aliases only: short codes such as "na" must never match "Nai".
+    # Keep historical province names as the source issued them, without merger remapping.
+    def full_matches(value):
+        normalized = unicodedata.normalize("NFC", value).casefold()
+        found = set()
+        for name, info in PROVINCES_DICT.items():
+            for alias in info["aliases"]:
+                if len(alias.replace(" ", "")) < 3 or alias.casefold() in {"hcm", "brvt"}:
+                    continue
+                if re.search(r"(?<!\w)" + re.escape(alias.casefold()) + r"(?!\w)", normalized):
+                    found.add(name)
                     break
-            if province:
-                break
+        return found
 
-    # Quét trực tiếp trong tiêu đề và chuyên mục
-    if not province:
-        for prov_name, prov_info in PROVINCES_DICT.items():
-            for alias in prov_info["aliases"]:
-                # Tìm từ nguyên vẹn với word boundary
-                pattern = r'(?:^|[\s,.\-–|/])' + re.escape(alias) + r'(?:$|[\s,.\-–|/])'
-                if re.search(pattern, title_lower):
-                    province = prov_name
-                    region = prov_info["region"]
-                    break
-            if province:
-                break
-
-    # Nếu vẫn chưa tìm thấy, gán mặc định nếu có cụm từ quốc gia/quốc tế
-    if not province:
-        if "quốc tế" in title_lower or "imo" in title_lower:
-            province = "Quốc Tế"
-            region = "Olympic Quốc Tế"
-        elif "quốc gia" in title_lower or "thpt qg" in title_lower or "thpt quốc gia" in title_lower or "bộ giáo dục" in title_lower:
-            province = "Toàn Quốc"
-            region = "Toàn Quốc (Bộ GD&ĐT)"
-        else:
-            province = "Toàn Quốc"
-            region = "Toàn Quốc"
+    title_matches = full_matches(title_norm)
+    authority_matches = full_matches(authority)
+    school_match = SPECIALIZED_SCHOOLS.get(school)
+    candidates = title_matches | authority_matches | ({school_match} if school_match else set())
+    geo_conflicts = sorted(candidates) if len(candidates) > 1 else []
+    province = next(iter(candidates)) if len(candidates) == 1 else ""
+    region = PROVINCES_DICT[province]["region"] if province else ""
+    geo_evidence = []
+    if province and province in title_matches:
+        geo_evidence.append({"field": "province", "value": province,
+                             "reference": "original_title", "excerpt": title})
+    if province and province in authority_matches:
+        geo_evidence.append({"field": "province", "value": province,
+                             "reference": "source_authority", "excerpt": authority})
+    # School mappings alone are inferred and require review; they are not source text evidence.
+    metadata_review_status = "verified" if geo_evidence and not geo_conflicts else "needs_review"
+    if not province and not geo_conflicts:
+        if "quốc tế" in title_lower or re.search(r"(?<!\w)imo(?!\w)", title_lower):
+            province, region = "Quốc Tế", "Olympic Quốc Tế"
+        elif any(term in title_lower for term in ["quốc gia", "thpt qg", "bộ giáo dục"]):
+            province, region = "Toàn Quốc", "Toàn Quốc (Bộ GD&ĐT)"
+        # Missing evidence stays unknown rather than being asserted as a national document.
 
     # 5. Phân loại Khối Lớp chuẩn
     grade_name = "THPT"
@@ -284,6 +276,10 @@ def extract_geo_and_metadata(title: str, categories: Optional[List[str]] = None)
 
     return {
         "geo_province": province,
+        "geo_conflicts": geo_conflicts,
+        "geo_evidence": geo_evidence,
+        "geo_rule_version": "province-full-alias-v1",
+        "metadata_review_status": metadata_review_status,
         "geo_region": region,
         "geo_authority": authority,
         "geo_school": school,

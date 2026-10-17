@@ -59,6 +59,8 @@ jobs:
           CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
           CLOUDFLARE_R2_BUCKET: ${{ secrets.CLOUDFLARE_R2_BUCKET }}
           BEEKIP_BASE_URL: ${{ vars.BEEKIP_BASE_URL || 'https://tailieu.beekip.vn' }}
+          DOCUMENT_INGEST_TOKEN: ${{ secrets.DOCUMENT_INGEST_TOKEN }}
+          DOCUMENT_INGEST_BASE_URL: ${{ vars.DOCUMENT_INGEST_BASE_URL || 'https://tailieu.beekip.vn' }}
           BEEKIP_CLOUD_ENABLED: ${{ vars.BEEKIP_CLOUD_ENABLED }}
           CLOUD_MODE: ${{ inputs.mode || 'ingest' }}
         run: |
