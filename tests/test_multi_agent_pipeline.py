@@ -206,6 +206,7 @@ class TestMultiAgenticFleet(unittest.TestCase):
             ("documents/v1/mock/cover.jpg", "https://files.beekip.vn/cover.jpg"),
         ]
         mock_d1 = MagicMock()
+        mock_d1.find_existing_document.return_value = None
         mock_indexer = MagicMock()
         mock_indexer.notify_indexnow.return_value = {"success": True, "count": 1}
         mock_indexer.ping_sitemaps.return_value = {"google": {"success": True}}

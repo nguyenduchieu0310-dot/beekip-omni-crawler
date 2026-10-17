@@ -41,6 +41,12 @@ class AutoPublisherAgent:
         """
         Deploy document to Cloudflare R2 + D1 and trigger real-time search engine indexing.
         """
+        self.d1.ensure_document_ingest()
+        existing = self.d1.find_existing_document(source_url, draft_package["slug"])
+        if existing:
+            existing_url = BEEKIP_BASE_URL.rstrip('/') + '/tai-lieu/' + quote(existing['slug'], safe='')
+            return {"success": True, "created": False, "document_id": existing['id'],
+                    "slug": existing['slug'], "canonical_url": existing_url, "indexing": {}}
         clean_pdf_path = Path(draft_package["clean_pdf_path"])
         cover_image_path = Path(draft_package["cover_image_path"])
 
@@ -59,6 +65,7 @@ class AutoPublisherAgent:
         pdf_storage_key = f"documents/v1/{doc_id}/source.pdf"
         cover_storage_key = f"documents/v1/{doc_id}/cover.jpg"
 
+        self.r2.ensure_document_assets_safe([(pdf_storage_key, payload_bytes), (cover_storage_key, cover_bytes)])
         r2_pdf_key, _ = self.r2.upload_document(
             payload_bytes,
             subject_slug,
@@ -102,6 +109,7 @@ class AutoPublisherAgent:
         meta_enricher_obj = SEOGEOEnricher.enrich(draft_package["title"])
         meta_enricher_obj.slug = slug
         meta_enricher_obj.description = draft_package["description"]
+        meta_enricher_obj.description_format = draft_package.get("description_format", "markdown")
         meta_enricher_obj.subject = draft_package.get("subject", meta_enricher_obj.subject)
         meta_enricher_obj.grade = draft_package.get("grade", meta_enricher_obj.grade)
         meta_enricher_obj.document_type = draft_package.get("category", meta_enricher_obj.document_type)

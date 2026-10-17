@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 from typing import Optional, Tuple, Union
 import requests
+from cloudflare.document_ingest import ingest_config, upload_document_asset
 
 from core.config import (
     CLOUDFLARE_ACCOUNT_ID,
@@ -29,6 +30,13 @@ class CloudflareR2Uploader:
         self.public_base_url = public_base_url.rstrip("/")
         self.api_token = api_token or get_cloudflare_token()
 
+    def ensure_document_assets_safe(self, assets):
+        """Validate the entire pair locally; the Worker enforces atomic no-overwrite per object."""
+        ingest_config()
+        for key, content in assets:
+            if not key.startswith("documents/v1/") or not 0 < len(content) <= (50 * 1024 * 1024 if key.endswith(".pdf") else 2 * 1024 * 1024):
+                raise ValueError("Invalid document asset pair")
+
     def upload_document(
         self,
         file_input: Union[bytes, str, Path],
@@ -44,18 +52,21 @@ class CloudflareR2Uploader:
         Content-addressed files, or an explicit key required by the existing app.
         Returns: (r2_storage_key, public_file_url)
         """
-        if not self.api_token:
-            raise RuntimeError("Cloudflare API token not found for R2 upload.")
-
         if isinstance(file_input, (str, Path)):
             file_bytes = Path(file_input).read_bytes()
         else:
             file_bytes = file_input
 
+        explicit_document_key = bool(storage_key and storage_key.startswith("documents/"))
         digest = hashlib.sha256(file_bytes).hexdigest()
         storage_key = storage_key or f"files/crawler/{subject_slug}/{academic_year}/{digest}.{ext}"
         if storage_key.startswith('/') or '..' in storage_key.split('/'):
             raise ValueError('Invalid R2 storage key')
+        if explicit_document_key:
+            upload_document_asset(storage_key, file_bytes, mime_type)
+            return storage_key, f"{self.public_base_url}/{storage_key}"
+        if not self.api_token:
+            raise RuntimeError("Cloudflare API token not found for non-document R2 upload")
         from urllib.parse import quote
         endpoint_url = (
             f"https://api.cloudflare.com/client/v4/accounts/{self.account_id}/"
@@ -69,7 +80,7 @@ class CloudflareR2Uploader:
             "User-Agent": "wrangler/3.114.0",
         }
 
-        resp = requests.put(endpoint_url, data=file_bytes, headers=headers, timeout=40)
+        resp = requests.put(endpoint_url, data=file_bytes, headers=headers, timeout=40, allow_redirects=False)
         if resp.status_code not in (200, 201):
             logger.error("R2 Upload failed for [%s] status %s: %s", storage_key, resp.status_code, resp.text[:200])
             raise RuntimeError(f"R2 upload failed with HTTP {resp.status_code}")

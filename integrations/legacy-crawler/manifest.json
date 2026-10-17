@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "sourceRoot": "D:\\Crawl Data Tài liệu cho Beekip",
+  "sourceOnly": true,
+  "files": [
+    {
+      "path": "geo_entity_extractor.py",
+      "sha256": "ed9d3905924ad4f0d60e5cd551534f6697d60f350e418fc7949206093ca27e1f",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "seo_geo_pipeline.py",
+      "sha256": "464ddeb3e8c77c4b88956cb48b95e1c92e5f0d5e8bddb00d09bff5b9cb1f1111",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "build_beekip_upload_manifests.py",
+      "sha256": "455b8fd0f2f59321ff133a06188b59cf35a489972dc0f6e3a2518db26ef82e58",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "build_d1_sql_batches.py",
+      "sha256": "c401200f57056ce66b3d6c58f6c72e011556e3ac178e1b49d8e764caf80c2d51",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "legacy_document_ingest.py",
+      "sha256": "35b468e82f5c167cd276ce79a59e57a6d11a7ff05d8808f019302ce9139fc71a",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "beekip_api_deployer.py",
+      "sha256": "28068ce35bee3733e94d2803e253524d4addf488bf052ffb94e4f19961e37602",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "beekip_wrangler_deployer.py",
+      "sha256": "09d95bc7387937944f0445b9d24fc928b152f9133436e0b94c08e2b8d06679fb",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "beekip_uploader.py",
+      "sha256": "8fc1d1c83e5ed395ed7c687287b87d281ef7e109c3213126cf0f2c718335f69e",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "deploy_single_crawled_post.py",
+      "sha256": "511bbce6db833170d2b192311a3a6050b83cc84754511833ecdf219c3fecf80f",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "cloudflare/document_ingest.py",
+      "sha256": "37b419b5af5dea3fabe6e0d4db1e6a9285c91641666edb2e5ca2b670b765afaa",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "cloudflare/d1_deployer.py",
+      "sha256": "faa1c9c255ece56f046459cea747ea9090a0ae28f5526904f4fae7c85ac6a89e",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "cloudflare/r2_uploader.py",
+      "sha256": "e47dae18e73ad5e37ce866b46225f117f9cbc4aed784edc61bc481c5ec11b3d2",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "services/cloud_pipeline.py",
+      "sha256": "11833c106b8d4ec1d382f26c22f34684cf41e05d026d3f14d7abeaf4d9275d48",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "services/pipeline.py",
+      "sha256": "dc0f2d8d4d6d1511a998afa13c10234497335520ea4aa90df954436deae8e75c",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": "services/run_cloud_cycle.py",
+      "sha256": "d003ab859dcdd7b968456243e73a2782ce49f0256ebfec6b6db8c15c0644ae8a",
+      "previousSha256": null,
+      "baselineCaptured": false
+    },
+    {
+      "path": ".github/workflows/crawler_scheduled.yml",
+      "sha256": "08d04fd05af8f73c09a67208ab1c2f81b22ffbc1c1a765be9498c4abc9f4bec4",
+      "previousSha256": null,
+      "baselineCaptured": false
+    }
+  ]
+}

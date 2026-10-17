@@ -41,6 +41,7 @@ class DocumentProcessingPipeline:
         """
         Process a single queued item to full completion.
         """
+        raise RuntimeError("Legacy document pipeline is retired; use the validated CloudPipeline ingest workflow")
         url = queue_item["url"]
         title = queue_item.get("title") or "Tài liệu học tập K-12"
         source_id = queue_item["source_id"]

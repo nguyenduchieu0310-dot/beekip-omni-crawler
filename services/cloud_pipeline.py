@@ -76,6 +76,7 @@ class CloudPipeline:
         self.bytes_uploaded = 0
 
     def process_inbound_url(self, item, source):
+        self.d1.ensure_document_ingest()
         url = item['url']
         self.db.update_inbound_status(url, 'PROCESSING')
         downloaded = None
@@ -85,7 +86,7 @@ class CloudPipeline:
                 return False
             meta = SEOGEOEnricher.enrich(item['title'], default_subject=source.get('primary_subject', 'Đa môn'))
             meta.slug = meta.slug[:150] + '-' + hashlib.sha256(url.encode()).hexdigest()[:10]
-            if self.d1.check_document_exists(meta.slug):
+            if self.d1.check_document_exists(meta.slug, source_url=url):
                 self.db.update_inbound_status(url, 'COMPLETED')
                 return True
             adapter = get_adapter_for_source(source)
@@ -152,6 +153,9 @@ class CloudPipeline:
                 self.bytes_uploaded += total
                 subject = SEOGEOEnricher.generate_slug(meta.subject)
                 doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, url))
+                self.r2.ensure_document_assets_safe([
+                    (f'documents/v1/{doc_id}/source.pdf', payload),
+                    (f'documents/v1/{doc_id}/cover.jpg', cover_bytes)])
                 key, _ = self.r2.upload_document(
                     payload, subject, meta.academic_year, meta.slug,
                     storage_key=f'documents/v1/{doc_id}/source.pdf')
@@ -162,6 +166,7 @@ class CloudPipeline:
                 for content, object_key, public_url in ((payload, key, file_url), (cover_bytes, cover_key, cover_url)):
                     self.db.record_file_blob(hashlib.sha256(content).hexdigest(), len(content), object_key, public_url, url)
                 meta.description = description
+                meta.description_format = "markdown"
                 self.d1.insert_document(meta, file_url, len(payload), url, page_count=count,
                                         cover_url=cover_url, author_name=author, storage_key=key)
                 self.db.update_inbound_status(url, 'COMPLETED')
