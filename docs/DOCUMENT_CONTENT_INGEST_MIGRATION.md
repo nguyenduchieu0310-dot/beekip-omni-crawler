@@ -11,6 +11,17 @@ The crawler now publishes document assets and content through the LMS Worker. Qu
 - Incoming render status is pending. Only the LMS compiler may certify rendering. Missing/conflicting source evidence is marked for review while existing public documents remain readable.
 - An existing source identity is checked by source URL UUID / source key prefix before uploads. Source/slug conflicts fail for review. The endpoint must return the existing identity without overwriting edited content.
 
+## Remote preflight authentication
+
+Run the scheduled workflow manually with `mode=preflight` before enabling ingest. It requires `DOCUMENT_INGEST_TOKEN` in addition to the existing Cloudflare account/database/bucket/token secrets. The production origin is fixed to `https://tailieu.beekip.vn`; `DOCUMENT_INGEST_BASE_URL` must agree with the verified app origin.
+
+Remote preflight requires D1 columns `description_format`, `source_provenance_json`, and `content_quality_json`. After the existing private cover proof, it sends two fixed invalid requests with the dedicated ingest token, using a separate HTTP client, a 15-second timeout, no redirects and response bodies limited to 4 KiB:
+
+- Empty JSON `{}` to `/api/internal/documents/ingest` must return HTTP 422 with `Unsupported schemaVersion.`
+- Empty bytes to `/api/internal/documents/assets?key=invalid-preflight-key` must return HTTP 422 with `Invalid asset key or SHA-256.`
+
+Both deployed validators reject these requests before accessing D1 or R2. No valid document, asset key, digest or file is supplied. A wrong token, redirect, unexpected success or changed validation response fails preflight. Cloudflare credentials are never sent to the app. `--local-read-only` remains the earlier resource/cover check: it neither requires nor verifies the ingest token and is not a release activation gate.
+
 ## Legacy local workspace
 
 `integrations/legacy-crawler` versions the bounded source snapshot and hashes from the local workspace without Git metadata. It contains no corpus, environment file or credential. Do not deploy historical `cloud-export` or `outputs/cloud_setup_backup` copies; those are inactive historical snapshots, not the reviewed source.

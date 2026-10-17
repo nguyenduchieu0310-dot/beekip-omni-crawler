@@ -67,12 +67,58 @@ def verify_private_app_route(d1, cloudflare_session, bucket_api, app_url):
             return
     raise RuntimeError('Could not verify Beekip cover route against the selected private R2 bucket')
 
+def verify_document_consumer_contract(app_url):
+    """Authenticate with deliberately invalid requests rejected before D1/R2 access.
+
+    The JSON has no schemaVersion; the asset key is invalid and its body empty.
+    These fixed probes must never be replaced by valid publication payloads.
+    """
+    import requests
+    from urllib.parse import urlsplit
+    from cloudflare.document_ingest import ingest_config
+    parsed = urlsplit(app_url)
+    if (parsed.scheme != "https" or parsed.netloc != "tailieu.beekip.vn"
+            or parsed.path not in ("", "/") or parsed.query or parsed.fragment):
+        raise RuntimeError("Document consumer preflight requires the verified production app origin")
+    origin = app_url.rstrip("/")
+    endpoint, ingest_token = ingest_config()
+    if endpoint != origin + "/api/internal/documents/ingest":
+        raise RuntimeError("Document ingest origin differs from the verified app origin")
+    headers = {"Authorization": "Bearer " + ingest_token, "Content-Type": "application/json"}
+
+    def expect_rejection(url, label, expected_error, **body):
+        # A separate request is intentional: do not reuse the Cloudflare-authenticated session.
+        response = requests.post(url, headers=headers, timeout=15, allow_redirects=False,
+                                 stream=True, **body)
+        try:
+            if response.status_code != 422:
+                raise RuntimeError("Document consumer " + label + " rejection probe failed (HTTP " + str(response.status_code) + ")")
+            chunks, size = [], 0
+            for block in response.iter_content(1024):
+                size += len(block)
+                if size > 4096:
+                    raise RuntimeError("Document consumer " + label + " rejection response exceeds 4 KiB")
+                chunks.append(block)
+            try:
+                result = json.loads(b"".join(chunks).decode("utf-8"))
+            except (ValueError, UnicodeError):
+                raise RuntimeError("Document consumer " + label + " rejection is not valid JSON") from None
+            if not isinstance(result, dict) or result.get("error") != expected_error:
+                raise RuntimeError("Document consumer " + label + " rejection contract differs")
+        finally:
+            response.close()
+
+    expect_rejection(endpoint, "ingest", "Unsupported schemaVersion.", json={})
+    expect_rejection(origin + "/api/internal/documents/assets?key=invalid-preflight-key",
+                     "asset", "Invalid asset key or SHA-256.", data=b"")
+
+
 def preflight(local_read_only=False):
     import requests
     from core import config
     from cloudflare.d1_deployer import CloudflareD1Deployer
     names = ('CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_D1_DATABASE_ID',
-             'CLOUDFLARE_R2_BUCKET', 'CLOUDFLARE_API_TOKEN')
+             'CLOUDFLARE_R2_BUCKET', 'CLOUDFLARE_API_TOKEN', 'DOCUMENT_INGEST_TOKEN')
     if not local_read_only:
         missing = [name for name in names if not os.environ.get(name, '').strip()]
         if missing:
@@ -83,6 +129,8 @@ def preflight(local_read_only=False):
     d1 = CloudflareD1Deployer(api_token=token)
     columns = d1._get_columns()
     required = {'id', 'slug', 'source_object_key', 'cover_url', 'is_published', 'audience_tags_json'}
+    if not local_read_only:
+        required |= {'description_format', 'source_provenance_json', 'content_quality_json'}
     if not required <= columns:
         raise RuntimeError('D1 schema is incompatible with this publisher')
     session = requests.Session()
@@ -98,8 +146,11 @@ def preflight(local_read_only=False):
         return data['result']
     read('')
     verify_private_app_route(d1, session, bucket_api, config.BEEKIP_BASE_URL)
-    # Authenticated local OAuth is allowed for this read-only check, never exported as a secret.
-    logger.info('Preflight passed: D1 schema, private R2 bucket and existing Beekip cover route')
+    if not local_read_only:
+        verify_document_consumer_contract(config.BEEKIP_BASE_URL)
+    # Local OAuth remains a backwards-compatible read-only resource check.
+    logger.info('Preflight passed: D1 schema, private R2 bucket, Beekip cover route; consumer authentication %s',
+                'not checked (local-read-only)' if local_read_only else 'verified by write-free rejection probes')
     return d1
 
 
