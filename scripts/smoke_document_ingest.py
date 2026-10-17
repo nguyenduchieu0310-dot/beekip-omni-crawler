@@ -48,7 +48,7 @@ def main():
                 "description": body, "descriptionFormat": "html", "sourceObjectKey": key,
                 "originalFilename": "staging-smoke.pdf", "mimeType": "application/pdf", "sizeBytes": len(data),
                 "pageCount": pages, "previewPages": list(range(1, min(pages, 2) + 1)), "watermarkEnabled": True,
-                "downloadLimit": 3, "isPublished": True, "orderIndex": 2147483000, "coverUrl": None}
+                "downloadLimit": 3, "isPublished": True, "orderIndex": 999999999, "coverUrl": None}
     payload = document_payload(document, provenance, "needs_review", [])
     report = {"version": 1, "origin": base, "documentId": id_, "slug": slug, "sourceObjectKey": key,
               "fixturePdfSha256": hashlib.sha256(data).hexdigest(), "fixturePageCount": pages, "checks": {}, "ok": False}
