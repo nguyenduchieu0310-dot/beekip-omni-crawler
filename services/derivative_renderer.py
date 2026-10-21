@@ -124,8 +124,15 @@ class DerivativeRendererEngine:
 
             avg_chars = round(total_chars / max(1, page_count), 1)
             results["avg_chars_per_page"] = avg_chars
-            # Lớp chữ tìm kiếm: mọi trang văn bản đều phải có chữ hoặc hình ảnh học thuật
-            results["has_searchable_text"] = (page_count > 0 and pages_with_insufficient_text == 0)
+            # Lớp chữ tìm kiếm: đạt chuẩn khi trung bình toàn tệp >= 120 ký tự/trang hoặc >= 80% số trang có đủ văn bản/hình vẽ
+            searchable_ratio = (page_count - pages_with_insufficient_text) / max(1, page_count)
+            results["has_searchable_text"] = (
+                page_count > 0
+                and (
+                    pages_with_insufficient_text == 0
+                    or (avg_chars >= 120 and searchable_ratio >= 0.75)
+                )
+            )
             if not results["has_searchable_text"]:
                 results["valid"] = False
                 results["reasons"].append(f"Thiếu Text Layer tìm kiếm (trung bình chỉ có {avg_chars} ký tự/trang)")

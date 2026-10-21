@@ -131,8 +131,8 @@ class CloudflareD1Deployer:
         doc_id = str(uuid.uuid5(uuid.NAMESPACE_URL, source_url))
         prefix = "documents/v1/" + doc_id + "/"
         result = self.execute_raw_sql(
-            "SELECT id,slug,source_object_key FROM documents WHERE id=? OR source_object_key LIKE ? OR slug=? LIMIT 2",
-            [doc_id, prefix + "%", slug])
+            "SELECT id,slug,source_object_key FROM documents WHERE id=? OR substr(source_object_key,1,50)=? OR slug=? LIMIT 2",
+            [doc_id, prefix, slug])
         rows = result["result"][0]["results"]
         matches = [row for row in rows if row["id"] == doc_id or str(row.get("source_object_key", "")).startswith(prefix)]
         if len(matches) == 1:

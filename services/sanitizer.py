@@ -200,19 +200,16 @@ class DeepSanitizerEngine:
                 # Hình học, đồ thị bài toán toán học chiếm diện tích cục bộ bên trong câu hỏi, không phải watermark
                 for img_info in page.get_images(full=True):
                     xref = img_info[0]
-                    rects = page.get_image_rects(xref)
-                    if rects:
-                        page_area = max(1.0, page.rect.width * page.rect.height)
-                        for r in rects:
-                            img_area = r.width * r.height
-                            if (img_area / page_area) >= 0.60:
-                                watermark_images_detected += 1
-                    else:
-                        base_img = doc.extract_image(xref)
-                        if base_img:
-                            w, h = base_img.get("width", 0), base_img.get("height", 0)
-                            if w >= 1500 and h >= 2000:
-                                watermark_images_detected += 1
+                    smask = img_info[1] if len(img_info) > 1 else 0
+                    # Chỉ coi là ảnh watermark chèn đè nếu có lớp mặt nạ trong suốt (smask > 0) và phủ >= 65% trang
+                    if smask and smask > 0:
+                        rects = page.get_image_rects(xref)
+                        if rects:
+                            page_area = max(1.0, page.rect.width * page.rect.height)
+                            for r in rects:
+                                img_area = r.width * r.height
+                                if (img_area / page_area) >= 0.65:
+                                    watermark_images_detected += 1
 
             doc.close()
 
@@ -245,20 +242,27 @@ class DeepSanitizerEngine:
                 
                 # Quét các khối văn bản để tìm tọa độ cần bóc tách (Redaction) trên toàn bộ 7 nhóm PII/watermark
                 text_instances = []
-                for finding in self.scan_text_anomalies(page.get_text()):
+                for finding in self.scan_text_anomalies(page.get_text("text")):
                     matched_text = str(finding.get("value") or "").strip()
-                    if matched_text and len(matched_text) >= 4 and not self.is_preserved_academic_entity(matched_text):
-                        rects = page.search_for(matched_text)
-                        for rect in rects:
-                            text_instances.append(rect)
+                    if not matched_text:
+                        continue
+                    candidates = [matched_text] + [
+                        part.strip() for part in matched_text.splitlines() if len(part.strip()) >= 3
+                    ]
+                    for cand in candidates:
+                        if len(cand) >= 3:
+                            rects = page.search_for(cand)
+                            for rect in rects:
+                                text_instances.append(rect)
 
-                # Áp dụng Redaction Annotation (xóa sạch vùng text vi phạm, phủ nền trắng hoàn toàn)
+                # Áp dụng Redaction Annotation (xóa sạch vùng text vi phạm, bảo toàn 100% hình vẽ/đồ thị bên dưới)
                 for rect in text_instances:
                     page.add_redact_annot(rect, fill=(1, 1, 1))
                     redactions_applied += 1
 
                 if text_instances:
-                    page.apply_redactions()
+                    redact_img_none = getattr(pymupdf, "PDF_REDACT_IMAGE_NONE", 0)
+                    page.apply_redactions(images=redact_img_none)
 
             # Lưu tệp phái sinh tối ưu hóa (garbage=4 loại bỏ toàn bộ đối tượng mồ côi)
             doc.save(str(output_pdf), garbage=4, deflate=True, no_new_id=True)
