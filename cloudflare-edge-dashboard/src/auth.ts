@@ -61,7 +61,7 @@ export function renderLoginHtml(basePath: string = "/hubag/crawl", errorMessage:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Đăng Nhập Quản Trị • Beekip Omni-Agent 24/7/365</title>
+  <title>Đăng Nhập Quản Trị • AG Học Liệu v3.0 (24/7/365)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -86,7 +86,7 @@ export function renderLoginHtml(basePath: string = "/hubag/crawl", errorMessage:
       </div>
       <div>
         <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-teal-300 bg-clip-text text-transparent">
-          BEEKIP OMNI-AGENT
+          AG HỌC LIỆU v3.0
         </h1>
         <p class="text-xs text-slate-400 mt-1">Cổng Quản Trị Hệ Thống Thu Nạp &amp; Xuất Bản 24/7/365</p>
       </div>

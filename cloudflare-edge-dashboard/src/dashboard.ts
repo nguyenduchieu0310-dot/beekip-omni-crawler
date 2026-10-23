@@ -4,7 +4,7 @@ export function renderDashboardHtml(basePath: string = "/hubag/crawl", username:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beekip Unified Omni-Agent v2.5 • Trung Tâm Điều Khiển 24/7/365</title>
+  <title>AG Học Liệu v3.0 • Trung Tâm Điều Khiển 24/7/365</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script>
@@ -40,7 +40,7 @@ export function renderDashboardHtml(basePath: string = "/hubag/crawl", username:
       <div>
         <div class="flex items-center gap-2">
           <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-indigo-200 to-teal-300 bg-clip-text text-transparent">
-            BEEKIP UNIFIED OMNI-AGENT v2.5
+            AG HỌC LIỆU v3.0
           </h1>
           <span class="px-2.5 py-0.5 text-xs font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
             <span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span> 24/7/365 CLOUD EDGE
@@ -533,7 +533,7 @@ export function renderDashboardHtml(basePath: string = "/hubag/crawl", username:
 
         <div id="report-storage-content" class="bg-slate-950 border border-slate-800/80 rounded-xl p-4 font-mono text-xs text-slate-300 leading-relaxed whitespace-pre-wrap select-all">
 ================================================================================
-📊 BÁO CÁO KHO TÀI LIỆU SỐ HÓA BEEKIP UNIFIED OMNI-AGENT
+📊 BÁO CÁO KHO TÀI LIỆU SỐ HÓA • AG HỌC LIỆU v3.0
 Hạ tầng: Cloudflare Global Edge (24/7/365 Serverless)
 Thời gian cập nhật: <span id="report-timestamp">Đang lấy...</span>
 ================================================================================
